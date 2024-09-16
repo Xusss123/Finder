@@ -1,0 +1,85 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:alpine
+    environment:
+      - POSTGRES_DB=DATABASE_NAME
+      - POSTGRES_USER=DOCKER_POSTGRES_USERNAME
+      - POSTGRES_PASSWORD=DOCKER_POSTGRES_PASSWORD
+    restart: always
+    volumes:
+      - D:\postgres_datapart:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
+    networks:
+      - app-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"  # API порт для работы с объектным хранилищем
+      - "9001:9001"  # Порт для веб-консоли
+    volumes:
+      - D:/minio/data:/data
+    environment:
+      - MINIO_ROOT_USER=DOCKER_MINIO_USERNAME
+      - MINIO_ROOT_PASSWORD=DOCKER_MINIO_PASSWORD
+    restart: always
+    networks:
+      - app-network
+    command: server /data --console-address ":9001" # Указывает Docker, какой именно командой запускать контейнер после его создания
+
+  comment:
+    image: comment_microservice
+    build:
+      context: .
+      dockerfile: Comment_microservice/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/DATABASE_NAME
+      SPRING_DATASOURCE_USERNAME: DOCKER_POSTGRES_USERNAME
+      SPRING_DATASOURCE_PASSWORD: DOCKER_POSTGRES_PASSWORD
+      REDIS_HOST: redis
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+
+  ads:
+    image: ads_microservice
+    build:
+      context: .
+      dockerfile: Ads_microservice/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/DATABASE_NAME
+      SPRING_DATASOURCE_USERNAME: DOCKER_POSTGRES_USERNAME
+      SPRING_DATASOURCE_PASSWORD: DOCKER_POSTGRES_PASSWORD
+      REDIS_HOST: redis
+      MINIO_ENDPOINT: minio
+      COMMENT_HOST: comment
+    depends_on:
+      - postgres
+      - redis
+      - minio
+    restart: always
+    ports:
+      - "8080:8080"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

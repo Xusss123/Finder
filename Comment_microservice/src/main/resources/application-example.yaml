@@ -1,0 +1,15 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:LOCAL_POSTGRES_PORT/DATABASE_NAME}
+    username: ${SPRING_DATASOURCE_USERNAME:LOCAL_POSTGRES_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD:LOCAL_POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8081
+
+redis:
+  host: ${REDIS_HOST:localhost}

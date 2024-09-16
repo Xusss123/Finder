@@ -1,0 +1,38 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:LOCAL_POSTGRES_PORT/DATABASE_NAME}
+    username: ${SPRING_DATASOURCE_USERNAME:LOCAL_POSTGRES_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD:LOCAL_POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+  servlet:
+    multipart:
+      max-request-size: 30MB
+      max-file-size: 6MB
+
+server:
+  port: 8080
+
+redis:
+  host: ${REDIS_HOST:localhost}
+
+minio:
+  user: LOCAL_MINIO_USERNAME
+  password: LOCAL_MINIO_PASSWORD
+  endpoint: ${MINIO_ENDPOINT:localhost}
+  bucketNames:
+    image-bucket: images
+
+microservices:
+  comment:
+    prefix: http://
+    host: ${COMMENT_HOST:localhost}
+    port: 8081
+    endpoints:
+      dellAllCommentsByCard: /comment/delAll
+
+card:
+  images:
+    count: 6
