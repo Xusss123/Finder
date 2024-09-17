@@ -31,14 +31,14 @@ public class CardController {
             return cardService.getCard(id);
         } catch (SerializationException e) {
             throw new SerializationException(e.getMessage());
-        } catch (CardNotFoundException e){
+        } catch (CardNotFoundException e) {
             throw new CardNotFoundException(e.getMessage());
         }
 
     }
 
     @GetMapping("getAll")
-    public List<CardModel> getAllCards(){
+    public List<CardModel> getAllCards() {
         return cardService.getAllCards();
     }
 
@@ -46,11 +46,11 @@ public class CardController {
     public void addCard(@RequestPart("cardDto") CardDto cardDto, @RequestPart("files") List<MultipartFile> files) throws ImageNotSavedException, CardNotSavedException, ImageLimitException {
         try {
             cardService.addCard(files, cardDto);
-        }catch (ImageNotSavedException e){
+        } catch (ImageNotSavedException e) {
             throw new ImageNotSavedException(e.getMessage());
-        }catch (CardNotSavedException e){
+        } catch (CardNotSavedException e) {
             throw new CardNotSavedException(e.getMessage());
-        }catch (ImageLimitException e){
+        } catch (ImageLimitException e) {
             throw new ImageLimitException(e.getMessage());
         }
     }
@@ -78,12 +78,18 @@ public class CardController {
     public void delCard(@PathVariable Long id) throws CardNotDeletedException, CardNotFoundException {
         try {
             cardService.deleteCard(id);
-        } catch (CardNotDeletedException e){
+        } catch (CardNotDeletedException e) {
             throw new CardNotDeletedException(e.getMessage());
-        } catch (CardNotFoundException e){
+        } catch (CardNotFoundException e) {
             throw new CardNotFoundException(e.getMessage());
         }
     }
 
-
+    @DeleteMapping("/image/del/{cardId}/{imageId}")
+    public void delImage(@PathVariable Long cardId, @PathVariable Long imageId) throws CardNotFoundException {
+        cardService.delOneImageInCard(cardId,imageId);
+    }
 }
+
+
+

@@ -1,8 +1,6 @@
 package karm.van.model;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,8 +20,4 @@ public class ImageModel {
     private String imageBucket;
 
     private String imageName;
-
-    @JsonBackReference //Игнорировать это поле при сериализации (чтобы избежать циклического вызова)
-    @ManyToOne
-    private CardModel card;
 }

@@ -7,6 +7,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -30,8 +31,9 @@ public class CardModel {
 
     private LocalDateTime createTime;
 
-    @JsonManagedReference //Используется на стороне родителя и указывает, что это будет сериализоваться в JSON
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "card")
-    private List<ImageModel> images;
+    @ElementCollection
+    @CollectionTable(name = "card_images", joinColumns = @JoinColumn(name = "card_id"))
+    @Column(name = "image_id")
+    private List<Long> imgIds = new ArrayList<>();
 
 }
