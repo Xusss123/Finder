@@ -2,6 +2,7 @@ package karm.van.service;
 
 import jakarta.annotation.PostConstruct;
 import karm.van.config.AdsMicroServiceProperties;
+import karm.van.dto.ImageDto;
 import karm.van.exception.ImageLimitException;
 import karm.van.exception.ImageNotDeletedException;
 import karm.van.exception.ImageNotFoundException;
@@ -9,6 +10,7 @@ import karm.van.exception.ImageNotSavedException;
 import karm.van.model.ImageModel;
 import karm.van.repository.ImageRepo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -20,13 +22,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
 
+@Log4j2
 @Service
 @RequiredArgsConstructor
 public class ImageService {
     private final MinioService minioService;
     private final ImageRepo imageRepo;
     private final AdsMicroServiceProperties adsProperties;
-    private WebClient webClient;
+    private final RestService restService;
 
     @Value("${minio.bucketNames.image-bucket}")
     private String minioImageBucket;
@@ -34,15 +37,11 @@ public class ImageService {
     @Value("${card.images.count}")
     private int allowedImagesCount;
 
-    @PostConstruct
-    public void init(){
-        webClient = WebClient.create();
-    }
-
     private void saveImage(MultipartFile file, String fileName) throws ImageNotSavedException {
         try {
             minioService.putObject(minioImageBucket,file, fileName);
         }catch (Exception e){
+            log.error("The image was not saved: "+e.getMessage()+" - "+e.getClass());
             throw new ImageNotSavedException(e.getMessage());
         }
     }
@@ -51,13 +50,13 @@ public class ImageService {
         try {
             minioService.delObject(imageBucket,imageName);
         }catch (Exception e){
+            log.error("The image was not deleted: "+e.getMessage()+" - "+e.getClass());
             throw new ImageNotDeletedException(e.getMessage());
         }
     }
 
     @Transactional
     public List<Long> addCardImages(List<MultipartFile> files, int currentCardImagesCount) throws ImageNotSavedException, ImageLimitException{
-
         if (currentCardImagesCount<allowedImagesCount){
             int freeMemory = allowedImagesCount - currentCardImagesCount;
 
@@ -91,7 +90,6 @@ public class ImageService {
                     throw new RuntimeException(new ImageNotSavedException("There is a problem with image processing, so the article has not been published"));
                 }
             });
-
             return imagesId;
         }else {
             throw new ImageLimitException("You have provided more than" + allowedImagesCount + "images");
@@ -111,8 +109,9 @@ public class ImageService {
 
     @Transactional
     public void deleteAllImagesFromCard(List<Long> imagesId) {
-        imagesId.parallelStream().forEach(imageRepo::deleteById);
         deleteImagesFromMinio(imagesId);
+        imageRepo.deleteAllById(imagesId);
+        log.debug(imagesId.toString());
     }
 
     @Transactional
@@ -120,40 +119,30 @@ public class ImageService {
         ImageModel imageModel = imageRepo.findById(imageId)
                 .orElseThrow(() -> new ImageNotFoundException("Image with this id doesn't exist"));
 
-        try {
-            String url = buildUrl(
-                    adsProperties.getPrefix(),
-                    adsProperties.getHost(),
-                    adsProperties.getPort(),
-                    adsProperties.getEndpoints().getDelImage(),
-                    cardId,
-                    imageId);
+        String url = restService.buildUrl(
+                adsProperties.getPrefix(),
+                adsProperties.getHost(),
+                adsProperties.getPort(),
+                adsProperties.getEndpoints().getDelImage(),
+                cardId,
+                imageId);
 
-            HttpStatusCode statusCode = requestToDelOneImage(url);
+        HttpStatusCode statusCode = restService.requestToDelOneImage(url);
 
-            if (statusCode == HttpStatus.OK) {
-                minioService.delObject(minioImageBucket, imageModel.getImageName());
-                imageRepo.delete(imageModel);
-            }
-        } catch (ImageNotDeletedException e) {
-            throw new ImageNotDeletedException(e.getMessage());
+        if (statusCode == HttpStatus.OK) {
+            minioService.delObject(minioImageBucket, imageModel.getImageName());
+            imageRepo.delete(imageModel);
+        } else {
+            throw new ImageNotDeletedException("Failed to delete image");
         }
     }
 
-    private String buildUrl(String prefix, String host, String port, String endpoint, Long cardId, Long imageId) {
-        return UriComponentsBuilder.fromHttpUrl(prefix + host + ":" + port + endpoint + cardId + "/" + imageId)
-                .toUriString();
+    private ImageDto imageModelToDto(ImageModel imageModel){
+        return new ImageDto(imageModel.getId(),imageModel.getImageBucket(),imageModel.getImageName());
     }
 
-    private HttpStatusCode requestToDelOneImage(String url) {
-        return Objects.requireNonNull(
-                        webClient
-                                .delete()
-                                .uri(url)
-                                .retrieve()
-                                .toBodilessEntity()
-                                .block()
-                )
-                .getStatusCode();
+    public List<ImageDto> getImages(List<Long> imagesId) {
+        return imageRepo.findAllById(imagesId)
+                .stream().map(this::imageModelToDto).toList();
     }
 }

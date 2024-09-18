@@ -17,5 +17,6 @@ public class CommentMicroServiceProperties {
     @Getter
     public static class Endpoints{
         private String dellAllCommentsByCard;
+        private String getComments;
     }
 }

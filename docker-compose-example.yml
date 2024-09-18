@@ -58,6 +58,28 @@ services:
     networks:
       - app-network
 
+  image-microservice:
+    image: image_microservice
+    build:
+      context: .
+      dockerfile: Image_microservice/Dockerfile
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/DATABASE_NAME
+      SPRING_DATASOURCE_USERNAME: DOCKER_POSTGRES_USERNAME
+      SPRING_DATASOURCE_PASSWORD: DOCKER_POSTGRES_PASSWORD
+      MINIO_USERNAME: DOCKER_MINIO_USERNAME
+      MINIO_PASSWORD: DOCKER_MINIO_PASSWORD
+      MINIO_ENDPOINT: minio
+      ADS_HOST: ads
+    depends_on:
+      - postgres
+      - minio
+    restart: always
+    ports:
+      - "8082:8082"
+    networks:
+      - app-network
+
   ads:
     image: ads_microservice
     build:
@@ -70,10 +92,10 @@ services:
       REDIS_HOST: redis
       MINIO_ENDPOINT: minio
       COMMENT_HOST: comment
+      IMAGE_HOST: image-microservice
     depends_on:
       - postgres
       - redis
-      - minio
     restart: always
     ports:
       - "8080:8080"

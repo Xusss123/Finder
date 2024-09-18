@@ -18,5 +18,6 @@ public class ImageMicroServiceProperties {
     public static class Endpoints{
         private String addCardImages;
         private String delImagesFromMinio;
+        private String getImages;
     }
 }

@@ -12,29 +12,24 @@ spring:
       max-request-size: 30MB
       max-file-size: 6MB
 
+minio:
+  user: ${MINIO_USERNAME:LOCAL_MINIO_USERNAME}
+  password: ${MINIO_PASSWORD:LOCAL_MINIO_PASSWORD}
+  endpoint: ${MINIO_ENDPOINT:localhost}
+  bucketNames:
+    image-bucket: images
+
 server:
-  port: 8080
-
-redis:
-  host: ${REDIS_HOST:localhost}
-
-microservices:
-  comment:
-    prefix: http://
-    host: ${COMMENT_HOST:localhost}
-    port: 8081
-    endpoints:
-      dellAllCommentsByCard: /comment/delAll/
-      getComments: /comment/get/
-  image:
-    prefix: http://
-    host: ${IMAGE_HOST:localhost}
-    port: 8082
-    endpoints:
-      addCardImages: /image/addCardImages
-      delImagesFromMinio: /image/minio/del
-      getImages: /image/get
+  port: 8082
 
 card:
   images:
     count: 6
+
+microservices:
+  ads:
+    prefix: http://
+    host: ${ADS_HOST:localhost}
+    port: 8080
+    endpoints:
+      delImage: /card/image/del/
