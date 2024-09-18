@@ -7,6 +7,7 @@ import karm.van.exception.image.ImageLimitException;
 import karm.van.exception.image.ImageNotSavedException;
 import karm.van.exception.image.ImageNotFoundException;
 import karm.van.exception.other.SerializationException;
+import karm.van.exception.other.ServerException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -48,6 +49,11 @@ public class ExceptionHandlerController {
 
     @ExceptionHandler(ImageNotSavedException.class)
     public ResponseEntity<String> imageLoadException(ImageNotSavedException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ServerException.class)
+    public ResponseEntity<String> serverException(ServerException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

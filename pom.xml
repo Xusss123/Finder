@@ -24,6 +24,8 @@
     <modules>
         <module>Ads_microservice</module>
         <module>Comment_microservice</module>
+        <module>Authentication_microservice</module>
+        <module>Image_microservice</module>
     </modules>
     <scm>
         <connection/>

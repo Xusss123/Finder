@@ -4,10 +4,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "microservices.comment")
+@ConfigurationProperties(prefix = "microservices.ads")
 @Getter
 @Setter
-public class CommentMicroServiceProperties {
+public class AdsMicroServiceProperties {
     private String prefix;
     private String host;
     private String port;
@@ -16,7 +16,6 @@ public class CommentMicroServiceProperties {
     @Setter
     @Getter
     public static class Endpoints{
-        private String dellAllCommentsByCard;
-        private String getComments;
+        private String delImage;
     }
 }
