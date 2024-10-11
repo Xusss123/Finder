@@ -13,3 +13,15 @@ server:
 
 redis:
   host: ${REDIS_HOST:localhost}
+
+microservices:
+  x-api-key: ${X_API_KEY:local-api-key}
+  authentication:
+    prefix: http://
+    host: ${AUTHENTICATION_HOST:localhost}
+    port: 8083
+    endpoints:
+      validateToken: /auth/validate
+      getUserByToken: /auth/get-user
+      linkCommentAndUser: /auth/user/addComment
+      unlinkCommentAndUser: /auth/user/comment/del

@@ -1,0 +1,30 @@
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:LOCAL_POSTGRES_PORT/DATABASE_NAME}
+    username: ${SPRING_DATASOURCE_USERNAME:LOCAL_POSTGRES_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD:LOCAL_POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+
+server:
+  port: 8083
+
+jwt:
+  secret-key: your-secret-key
+
+microservices:
+  x-api-key: ${X_API_KEY:local-api-key}
+  ads:
+    prefix: http://
+    host: ${ADS_HOST:localhost}
+    port: 8080
+    endpoints:
+      delCard: /card/del
+  image:
+    prefix: http://
+    host: ${IMAGE_HOST:localhost}
+    port: 8082
+    endpoints:
+      saveProfileImage: /image/addProfileImage

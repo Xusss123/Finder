@@ -1,13 +1,16 @@
 package karm.van.controller;
 
+import karm.van.exception.card.CardNotDeletedException;
 import karm.van.exception.card.CardNotFoundException;
 import karm.van.exception.card.CardNotSavedException;
-import karm.van.exception.image.ImageNotDeletedException;
-import karm.van.exception.image.ImageLimitException;
-import karm.van.exception.image.ImageNotSavedException;
-import karm.van.exception.image.ImageNotFoundException;
+import karm.van.exception.card.CardNotUnlinkException;
+import karm.van.exception.comment.CommentNotDeletedException;
+import karm.van.exception.image.*;
 import karm.van.exception.other.SerializationException;
 import karm.van.exception.other.ServerException;
+import karm.van.exception.other.TokenNotExistException;
+import karm.van.exception.user.NotEnoughPermissionsException;
+import karm.van.exception.user.UsernameNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -32,6 +35,21 @@ public class ExceptionHandlerController {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(TokenNotExistException.class)
+    public ResponseEntity<String> tokenNotExistException(TokenNotExistException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(NotEnoughPermissionsException.class)
+    public ResponseEntity<String> notEnoughPermissionsException(NotEnoughPermissionsException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<String> usernameNotFoundException(UsernameNotFoundException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(CardNotFoundException.class)
     public ResponseEntity<String> cardNotFoundException(CardNotFoundException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);
@@ -47,6 +65,16 @@ public class ExceptionHandlerController {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(CardNotUnlinkException.class)
+    public ResponseEntity<String> cardNotUnlinkException(CardNotUnlinkException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(CommentNotDeletedException.class)
+    public ResponseEntity<String> commentNotDeletedException(CommentNotDeletedException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(ImageNotSavedException.class)
     public ResponseEntity<String> imageLoadException(ImageNotSavedException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
@@ -54,6 +82,16 @@ public class ExceptionHandlerController {
 
     @ExceptionHandler(ServerException.class)
     public ResponseEntity<String> serverException(ServerException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(CardNotDeletedException.class)
+    public ResponseEntity<String> cardNotDeletedException(CardNotDeletedException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ImageNotMovedException.class)
+    public ResponseEntity<String> imageNotMovedException(ImageNotMovedException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

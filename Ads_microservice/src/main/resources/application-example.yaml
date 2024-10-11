@@ -19,13 +19,13 @@ redis:
   host: ${REDIS_HOST:localhost}
 
 microservices:
+  x-api-key: ${X_API_KEY:local-api-key}
   comment:
     prefix: http://
     host: ${COMMENT_HOST:localhost}
     port: 8081
     endpoints:
       dellAllCommentsByCard: /comment/delAll/
-      getComments: /comment/get/
   image:
     prefix: http://
     host: ${IMAGE_HOST:localhost}
@@ -34,6 +34,17 @@ microservices:
       addCardImages: /image/addCardImages
       delImagesFromMinio: /image/minio/del
       getImages: /image/get
+      delOneImageFromCard: /image/del
+      moveImage: /image/move
+  authentication:
+    prefix: http://
+    host: ${AUTHENTICATION_HOST:localhost}
+    port: 8083
+    endpoints:
+      validateToken: /auth/validate
+      user: /auth/get-user
+      addCardToUser: /auth/user/addCard
+      unlinkCardFromUser: /auth/user/card/del
 
 card:
   images:

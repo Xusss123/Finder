@@ -18,6 +18,8 @@ minio:
   endpoint: ${MINIO_ENDPOINT:localhost}
   bucketNames:
     image-bucket: images
+    trash-bucket: trash
+    profile-image-bucket: profile-image
 
 server:
   port: 8082
@@ -27,9 +29,11 @@ card:
     count: 6
 
 microservices:
-  ads:
+  x-api-key: ${X_API_KEY:local-api-key}
+  authentication:
     prefix: http://
-    host: ${ADS_HOST:localhost}
-    port: 8080
+    host: ${AUTHENTICATION_HOST:localhost}
+    port: 8083
     endpoints:
-      delImage: /card/image/del/
+      validateToken: /auth/validate
+      addProfileImage: /auth/user/addProfileImage

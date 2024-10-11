@@ -4,10 +4,10 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@ConfigurationProperties(prefix = "microservices.image")
+@ConfigurationProperties(prefix = "microservices.authentication")
 @Getter
 @Setter
-public class ImageMicroServiceProperties {
+public class AuthenticationMicroServiceProperties {
     private String prefix;
     private String host;
     private String port;
@@ -16,8 +16,7 @@ public class ImageMicroServiceProperties {
     @Setter
     @Getter
     public static class Endpoints{
-        private String addCardImages;
-        private String delImagesFromMinio;
-        private String getImages;
+        private String validateToken;
+        private String addProfileImage;
     }
 }

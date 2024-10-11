@@ -1,4 +1,4 @@
-package karm.van.exception;
+package karm.van.exception.comment;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
