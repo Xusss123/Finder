@@ -31,6 +31,8 @@ public class CardModel {
 
     private LocalDateTime createTime;
 
+    private Long userId;
+
     @ElementCollection
     @CollectionTable(name = "card_images", joinColumns = @JoinColumn(name = "card_id"))
     @Column(name = "image_id")

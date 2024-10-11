@@ -3,24 +3,32 @@ package karm.van.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import karm.van.config.CommentMicroServiceProperties;
-import karm.van.config.ImageMicroServiceProperties;
+import karm.van.config.properties.AuthenticationMicroServiceProperties;
+import karm.van.config.properties.CommentMicroServiceProperties;
+import karm.van.config.properties.ImageMicroServiceProperties;
 import karm.van.dto.*;
-import karm.van.exception.card.CardNotDeletedException;
 import karm.van.exception.card.CardNotFoundException;
 import karm.van.exception.card.CardNotSavedException;
+import karm.van.exception.card.CardNotUnlinkException;
+import karm.van.exception.comment.CommentNotDeletedException;
 import karm.van.exception.image.ImageLimitException;
+import karm.van.exception.image.ImageNotDeletedException;
+import karm.van.exception.image.ImageNotMovedException;
 import karm.van.exception.image.ImageNotSavedException;
 import karm.van.exception.other.SerializationException;
+import karm.van.exception.other.TokenNotExistException;
+import karm.van.exception.user.NotEnoughPermissionsException;
+import karm.van.exception.user.UsernameNotFoundException;
 import karm.van.model.CardModel;
 import karm.van.repository.CardRepo;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -28,22 +36,27 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 import redis.clients.jedis.JedisPooled;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
-@Log4j2
+@Slf4j
 public class CardService {
     private final CardRepo cardRepo;
     private JedisPooled redis;
     private final ObjectMapper objectMapper;
     private final CommentMicroServiceProperties commentProperties;
     private final ImageMicroServiceProperties imageProperties;
-    private final RestService restService;
+    private final AuthenticationMicroServiceProperties authenticationProperties;
+    private final ApiService apiService;
 
     @Value("${redis.host}")
     private String redisHost;
+
+    @Value("${microservices.x-api-key}")
+    private String apiKey;
 
     @Value("${card.images.count}")
     private int allowedImagesCount;
@@ -91,42 +104,144 @@ public class CardService {
         }
     }
 
-    @Transactional
-    public void addCard(List<MultipartFile> files, CardDto cardDto) throws ImageNotSavedException, CardNotSavedException, ImageLimitException {
+    private void checkToken(String token) throws TokenNotExistException {
+        if (!apiService.validateToken(token,
+                apiService.buildUrl(authenticationProperties.getPrefix(),
+                        authenticationProperties.getHost(),
+                        authenticationProperties.getPort(),
+                        authenticationProperties.getEndpoints().getValidateToken()
+                )
+        )){
+            throw new TokenNotExistException("Invalid token or expired");
+        }
+    }
+
+    private UserDtoRequest requestToGetUserByToken(String token) throws UsernameNotFoundException {
+        UserDtoRequest user = apiService.getUserByToken(apiService.buildUrl(
+                authenticationProperties.getPrefix(),
+                authenticationProperties.getHost(),
+                authenticationProperties.getPort(),
+                authenticationProperties.getEndpoints().getUser()
+        ), token);
+
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found");
+        }
+
+        return user;
+    }
+
+    private UserDtoRequest requestToGetUserById(String token, Long userId) throws UsernameNotFoundException {
+        UserDtoRequest user = apiService.getUserById(apiService.buildUrl(
+                authenticationProperties.getPrefix(),
+                authenticationProperties.getHost(),
+                authenticationProperties.getPort(),
+                authenticationProperties.getEndpoints().getUser()
+        ), token,userId);
+
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found");
+        }
+
+        return user;
+    }
+
+    private List<Long> requestToAddCardImages(List<MultipartFile> files, String token) throws ImageNotSavedException {
+        String url = apiService.buildUrl(imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getAddCardImages());
+
+        List<Long> imagesId = apiService.postRequestToAddCardImage(files, url, 0, token,apiKey);
+
+        if (imagesId == null || imagesId.isEmpty()) {
+            throw new ImageNotSavedException("Image IDs not returned");
+        }
+
+        return imagesId;
+    }
+
+    private void requestToLinkCardAndUser(CardModel cardModel, String token) throws CardNotSavedException {
+        String url = apiService.buildUrl(
+                authenticationProperties.getPrefix(),
+                authenticationProperties.getHost(),
+                authenticationProperties.getPort(),
+                authenticationProperties.getEndpoints().getAddCardToUser(),
+                cardModel.getId());
+
         try {
+            if (apiService.addCardToUser(url,token,apiKey) != HttpStatus.OK){
+                log.error("The error occurred while the user was being assigned a card");
+                throw new CardNotSavedException("An error occurred with saving");
+            }
+        }catch (NullPointerException | CardNotSavedException e){
+            log.error("class: " + e.getClass() + ", message: " + e.getMessage());
+            throw e;
+        }
+
+    }
+
+    @Async
+    protected void rollBackCard(Long cardId, String token) throws CardNotSavedException, CardNotFoundException {
+        CardModel cardModel = cardRepo.getCardModelById(cardId).orElseThrow(()->new CardNotFoundException("Card with this id doesn't found"));
+        requestToLinkCardAndUser(cardModel,token);
+    }
+
+    private void requestToDeleteImagesFromMinio(List<Long> imageIds,String token){
+        apiService.sendDeleteImagesFromMinioRequest(apiService.buildUrl(
+                imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getDelImagesFromMinio()
+        ), imageIds, token, apiKey);
+    }
+
+    @Async
+    protected void requestToDeleteImagesFromMinioAsync(List<Long> imageIds,String token){
+        requestToDeleteImagesFromMinio(imageIds,token);
+    }
+
+    @Transactional
+    public void addCard(List<MultipartFile> files, CardDto cardDto, String authorization)
+            throws ImageNotSavedException, CardNotSavedException, ImageLimitException, TokenNotExistException, UsernameNotFoundException {
+        String token = authorization.substring(7);
+
+        List<Long> imageIds = new ArrayList<>(); // Инициализация пустого списка
+        try {
+            checkToken(token);
+
             if (files.size() > allowedImagesCount) {
                 throw new ImageLimitException("You have provided more than " + allowedImagesCount + " images");
             }
 
+            Long userId = requestToGetUserByToken(token).id();
             CardModel cardModel = addCardText(cardDto);
-
-            String url = restService.buildUrl(imageProperties.getPrefix(),
-                                    imageProperties.getHost(),
-                                    imageProperties.getPort(),
-                                    imageProperties.getEndpoints().getAddCardImages());
-
-            List<Long> imageIds = restService.postRequestToAddCardImage(files, url,0);
-
-            if (imageIds == null || imageIds.isEmpty()) {
-                throw new ImageNotSavedException("Image IDs not returned");
-            }
+            imageIds = requestToAddCardImages(files,token);
 
             cardModel.setImgIds(imageIds);
-            cardRepo.save(cardModel);  // Сохраняем один раз в конце
+            cardModel.setUserId(userId);
+            cardRepo.save(cardModel);
 
-        } catch (ImageNotSavedException | ImageLimitException | CardNotSavedException e) {
-            log.debug("in class - "+e.getClass()+"an error has occurred: "+e.getMessage());
+            requestToLinkCardAndUser(cardModel,token);
+
+        } catch (ImageNotSavedException | ImageLimitException | UsernameNotFoundException | TokenNotExistException e) {
+            log.debug("in class - " + e.getClass() + " an error has occurred: " + e.getMessage());
             throw e;
-        } catch (Exception e){
-            log.debug("An unknown error occurred while deleting the card: "+e.getMessage()+" - "+e.getClass());
+        } catch (Exception e) {
+            if (!imageIds.isEmpty()) {
+                requestToDeleteImagesFromMinioAsync(imageIds,token);
+            }
+            log.error("class: " + e.getClass() + ", message: " + e.getMessage());
             throw new RuntimeException("Unexpected error occurred", e);
         }
     }
 
-    public FullCardDtoForOutput getCard(Long id) throws CardNotFoundException, SerializationException {
+    public FullCardDtoForOutput getCard(Long id,String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException, UsernameNotFoundException {
+        String token = authorization.substring(7);
+        checkToken(token);
         String key = "card%d".formatted(id);
         if (!redis.exists(key)) {//Если кеш отсутствует
-            return cacheCard(id,key);
+            return cacheCard(id,key,token);
         } else {//Если кеш найден
             try {
                 return objectMapper.readValue(redis.get(key), FullCardDtoForOutput.class);//Десериализуем строку в объект и возвращаем
@@ -136,8 +251,19 @@ public class CardService {
         }
     }
 
-    private FullCardDtoForOutput cacheCard(Long id, String key) throws CardNotFoundException, SerializationException {
-        Optional<CardModel> cardModelOptional = cardRepo.getCardModelById(id);//Ищем запись в БД
+    private List<ImageDto> requestToGetAllCardImages(CardModel card, String token){
+        String url = apiService.buildUrl(
+                imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getGetImages()
+        );
+
+        return apiService.getCardImagesRequest(card.getImgIds(),url,token);
+    }
+
+    private FullCardDtoForOutput cacheCard(Long cardId, String key, String token) throws CardNotFoundException, SerializationException, UsernameNotFoundException {
+        Optional<CardModel> cardModelOptional = cardRepo.getCardModelById(cardId);//Ищем запись в БД
 
         if (cardModelOptional.isEmpty()) {//Если записи в БД нет
             throw new CardNotFoundException("card with this id doesn't exist");//Ошибка о том, что карточки не существует
@@ -146,16 +272,11 @@ public class CardService {
         CardModel card = cardModelOptional.get();
         String objectAsString;
 
-        String url = restService.buildUrl(
-                imageProperties.getPrefix(),
-                imageProperties.getHost(),
-                imageProperties.getPort(),
-                imageProperties.getEndpoints().getGetImages()
-        );
+        List<ImageDto> images = requestToGetAllCardImages(card,token);
 
-        List<ImageDto> images = restService.getCardImagesRequest(card.getImgIds(),url);
+        String userName = requestToGetUserById(token,card.getUserId()).name();
 
-        FullCardDtoForOutput fullCardDtoForOutput = new FullCardDtoForOutput(card.getId(),card.getTitle(),card.getText(),card.getCreateTime(),images);
+        FullCardDtoForOutput fullCardDtoForOutput = new FullCardDtoForOutput(card.getId(),card.getTitle(),card.getText(),card.getCreateTime(),images,userName);
 
         try {
             objectAsString = objectMapper.writeValueAsString(fullCardDtoForOutput);//Сериализуем объект в строку
@@ -169,126 +290,268 @@ public class CardService {
         return fullCardDtoForOutput;
     }
 
-    @Transactional
-    public void deleteCard(Long id) throws CardNotDeletedException, CardNotFoundException {
-        String key = String.format("card%d", id);
+    private void moveImagesToTrashBucket(List<Long> imagesId, String token) throws ImageNotMovedException {
+        String imageUrl = apiService.buildUrl(
+                imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getMoveImage()
+        );
         try {
-            CardModel cardModel = cardRepo.getCardModelById(id)
-                    .orElseThrow(() -> new CardNotFoundException("Card with this id doesn't exist"));
-
-            if (redis.exists(key)) {
-                redis.del(key);
+            HttpStatusCode httpStatusCode = apiService.moveImagesToTrashPackage(imageUrl, imagesId, token, apiKey);
+            if (httpStatusCode != HttpStatus.OK) {
+                throw new ImageNotMovedException("An error occurred on the server side during the image moving");
             }
+        }catch (Exception e){
+            throw new ImageNotMovedException("An error occurred on the server side during the image moving");
+        }
+    }
 
-            // URL для удаления комментариев
-            String commentUrl = restService.buildUrl(
-                    commentProperties.getPrefix(),
-                    commentProperties.getHost(),
-                    commentProperties.getPort(),
-                    commentProperties.getEndpoints().getDellAllCommentsByCard(),
-                    id
-            );
-
-            HttpStatusCode commentStatusCode = restService.requestToDelAllCommentsByCard(commentUrl);
+    private void sendRequestToDellAllComments(Long cardId, String token) throws CommentNotDeletedException {
+        String commentUrl = apiService.buildUrl(
+                commentProperties.getPrefix(),
+                commentProperties.getHost(),
+                commentProperties.getPort(),
+                commentProperties.getEndpoints().getDellAllCommentsByCard(),
+                cardId
+        );
+        try {
+            HttpStatusCode commentStatusCode = apiService.requestToDelAllCommentsByCard(commentUrl,token,apiKey);
 
             if (commentStatusCode != HttpStatus.OK) {
-                throw new CardNotDeletedException("An error occurred on the server side during the deletion of comments");
+                throw new CommentNotDeletedException("An error occurred on the server side during the deletion of comments");
             }
+        } catch (Exception e){
+            throw new CommentNotDeletedException(e.getMessage());
+        }
+    }
 
-            List<Long> imagesId = cardModel.getImgIds();
-            cardRepo.deleteById(id);
+    @Async
+    protected void rollBackImages(List<Long> imagesId, String token){
+        String imageUrl = apiService.buildUrl(
+                imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getMoveImage());
 
-            // URL для удаления изображений
-            String imageUrl = restService.buildUrl(
-                    imageProperties.getPrefix(),
-                    imageProperties.getHost(),
-                    imageProperties.getPort(),
-                    imageProperties.getEndpoints().getDelImagesFromMinio()
-            );
 
-            HttpStatusCode imageStatusCode = restService.sendDeleteImagesFromMinioRequest(imageUrl, imagesId);
+        apiService.moveImagesToImagePackage(imageUrl, imagesId, token, apiKey);
+    }
 
-            if (imageStatusCode != HttpStatus.OK) {
-                throw new CardNotDeletedException("An error occurred on the server side during the image deletion");
-            }
-        } catch (CardNotFoundException | CardNotDeletedException e) {
+    private void checkUserPermissions(String token, CardModel cardModel) throws UsernameNotFoundException, NotEnoughPermissionsException {
+
+        UserDtoRequest user;
+
+        try {
+            user = requestToGetUserByToken(token);
+        }catch (UsernameNotFoundException e) {
+            throw new UsernameNotFoundException("User with this token doesn't exist");
+        }
+
+        Long userId = user.id();
+        List<String> userRoles = user.role();
+
+        if ( (!userId.equals(cardModel.getUserId())) && (userRoles.stream().noneMatch(role->role.equals("ADMIN"))) ){
+            throw new NotEnoughPermissionsException("You don't have permission to do this");
+        }
+    }
+
+    private void requestToUnlinkCardFromUser(String token, Long cardId) throws CardNotUnlinkException {
+        HttpStatusCode httpStatusCode = apiService.requestToUnlinkCardFromUser(apiService.buildUrl(
+                authenticationProperties.getPrefix(),
+                authenticationProperties.getHost(),
+                authenticationProperties.getPort(),
+                authenticationProperties.getEndpoints().getUnlinkCardFromUser(),
+                cardId
+        ),token,apiKey);
+
+        if (httpStatusCode != HttpStatus.OK){
+            throw new CardNotUnlinkException("An error occurred while trying to delete the card");
+        }
+    }
+
+    @Transactional
+    public void deleteCard(Long cardId, String authorization) throws CardNotFoundException, TokenNotExistException, CommentNotDeletedException, ImageNotMovedException, UsernameNotFoundException, NotEnoughPermissionsException, CardNotSavedException {
+        String token = authorization.substring(7);
+        checkToken(token);
+
+        String key = String.format("card%d", cardId);
+
+        CardModel cardModel = cardRepo.getCardModelById(cardId)
+                .orElseThrow(() -> new CardNotFoundException("Card with this id doesn't exist"));
+
+        checkUserPermissions(token,cardModel);
+
+        List<Long> imagesId = cardModel.getImgIds();
+
+        if (redis.exists(key)) {
+            redis.del(key);
+        }
+
+        try {
+            requestToUnlinkCardFromUser(token,cardId);
+            moveImagesToTrashBucket(imagesId,token);
+            sendRequestToDellAllComments(cardId,token);
+
+            requestToDeleteImagesFromMinio(imagesId,token);
+
+            cardRepo.deleteById(cardId);
+        } catch (ImageNotMovedException e) {
+            rollBackCard(cardId,token);
+            throw e;
+        } catch (CommentNotDeletedException e){
+            rollBackImages(imagesId,token);
+            rollBackCard(cardId,token);
             throw e;
         } catch (Exception e) {
-            log.debug("An unknown error occurred while deleting the card: "+e.getMessage()+" - "+e.getClass());
+            log.error("An unknown error occurred while deleting the card: "+e.getMessage()+" - "+e.getClass());
             throw new RuntimeException("Unexpected error occurred", e);
         }
     }
 
-    public CardPageResponseDto getAllCards(int pageNumber, int limit){
+
+    private List<FullCardDtoForOutput> getFullCardsDto(String token, Page<CardModel> page){
+        return page.getContent().stream()
+                .map(card -> {
+                    try {
+                        return new FullCardDtoForOutput(
+                                card.getId(),
+                                card.getTitle(),
+                                card.getText(),
+                                card.getCreateTime(),
+                                requestToGetAllCardImages(card,token),
+                                requestToGetUserById(token,card.getUserId()).name());
+                    } catch (UsernameNotFoundException e) {
+                        throw new RuntimeException(e);
+                    }
+                }).toList();
+    }
+
+    private CardPageResponseDto cacheCards(int pageNumber, int limit, String token, String key) throws SerializationException {
+        String objectAsString;
+
         Page<CardModel> page = cardRepo.findAll(PageRequest.of(pageNumber,limit));
-        return new CardPageResponseDto(
-                page.getContent(),
+
+        CardPageResponseDto cardPageResponseDto = new CardPageResponseDto(
+                getFullCardsDto(token,page),
                 page.isLast(),
                 page.getTotalPages(),
                 page.getTotalElements(),
                 page.isFirst(),
                 page.getNumberOfElements());
+
+        try {
+            objectAsString = objectMapper.writeValueAsString(cardPageResponseDto);
+        } catch (JsonProcessingException e) {
+            throw new SerializationException("an error occurred during deserialization");
+        }
+
+        redis.set(key,objectAsString);
+        redis.expire(key,60);
+
+        return cardPageResponseDto;
+    }
+
+    public CardPageResponseDto getAllCards(int pageNumber, int limit, String authorization) throws TokenNotExistException, SerializationException {
+        String token = authorization.substring(7);
+        checkToken(token);
+
+        String key = "pageNumber:"+pageNumber+":limit:"+limit;
+        if (redis.exists(key)){
+            try {
+                return objectMapper.readValue(redis.get(key), CardPageResponseDto.class);
+            } catch (JsonProcessingException e) {
+                throw new SerializationException("an error occurred during serialization");
+            }
+        }else {
+            return cacheCards(pageNumber,limit,token,key);
+        }
+
     }
 
     @Transactional
-    public void patchCard(Long id, Optional<CardDto> cardDtoOptional, Optional<List<MultipartFile>> optFiles) throws CardNotFoundException, CardNotSavedException, ImageNotSavedException, ImageLimitException {
-       try {
-           CardModel cardModel = cardRepo.getCardModelById(id)
-                   .orElseThrow(() -> new CardNotFoundException("Card with this id doesn't exist"));
+    public void patchCard(Long id, Optional<CardDto> cardDtoOptional, Optional<List<MultipartFile>> optFiles, String authorization) throws CardNotFoundException, CardNotSavedException, ImageNotSavedException, ImageLimitException, TokenNotExistException, UsernameNotFoundException, NotEnoughPermissionsException {
+        String token = authorization.substring(7);
+        checkToken(token);
+        CardModel cardModel = cardRepo.getCardModelById(id)
+                .orElseThrow(() -> new CardNotFoundException("Card with this id doesn't exist"));
 
-           String key = "card%d".formatted(id);
-           boolean cardChange = false;
+        checkUserPermissions(token,cardModel);
 
-           if (cardDtoOptional.isPresent()) {
-               try {
-                   addCardText(cardDtoOptional.get(), cardModel);
-                   cardChange = true;
-               } catch (CardNotSavedException e) {
-                   throw new CardNotSavedException(e.getMessage());
-               }
-           }
+        String key = "card%d".formatted(id);
+        boolean cardChange = false;
 
-           if (optFiles.isPresent()) {
-               String url = restService.buildUrl(imageProperties.getPrefix(),
-                       imageProperties.getHost(),
-                       imageProperties.getPort(),
-                       imageProperties.getEndpoints().getAddCardImages());
-               try {
-                   List<Long> imageIds = restService.postRequestToAddCardImage(optFiles.get(), url, cardModel.getImgIds().size());
+        if (cardDtoOptional.isPresent()) {
+            try {
+                addCardText(cardDtoOptional.get(), cardModel);
+                cardChange = true;
+            } catch (CardNotSavedException e) {
+                throw new CardNotSavedException(e.getMessage());
+            }
+        }
 
-                   if (imageIds == null || imageIds.isEmpty()) {
-                       throw new ImageNotSavedException("An error occurred and the images were not saved");
-                   }else {
-                       List<Long> currentImagesId = cardModel.getImgIds();
-                       imageIds.parallelStream().forEach(currentImagesId::add);
-                       cardModel.setImgIds(currentImagesId);
-                       cardRepo.save(cardModel);
-                       cardChange = true;
-                   }
-               }catch (WebClientResponseException.BadRequest e){
-                   throw new ImageLimitException("There is a maximum number of images in this ad");
-               }
-           }
+        if (cardChange && redis.exists(key)){
+            redis.del(key);
+        }
 
-           if (cardChange && redis.exists(key)){
-               redis.del(key);
-           }
-       }catch (CardNotFoundException | CardNotSavedException | ImageNotSavedException | ImageLimitException e){
-           throw e;
-       }catch (Exception e){
-           log.debug("An unknown error occurred while deleting the card: "+e.getMessage()+" - "+e.getClass());
-           throw new RuntimeException("Unexpected error occurred", e);
-       }
+        if (optFiles.isPresent()) {
+            String url = apiService.buildUrl(imageProperties.getPrefix(),
+                    imageProperties.getHost(),
+                    imageProperties.getPort(),
+                    imageProperties.getEndpoints().getAddCardImages());
+            try {
+                List<Long> imageIds = apiService.postRequestToAddCardImage(optFiles.get(), url, cardModel.getImgIds().size(),token,apiKey);
+
+                if (imageIds == null || imageIds.isEmpty()) {
+                    throw new ImageNotSavedException("An error occurred and the images were not saved");
+                }else {
+                    List<Long> currentImagesId = cardModel.getImgIds();
+                    imageIds.parallelStream().forEach(currentImagesId::add);
+                    cardModel.setImgIds(currentImagesId);
+                    cardRepo.save(cardModel);
+                }
+            }catch (WebClientResponseException.BadRequest e){
+                throw new ImageLimitException("There is a maximum number of images in this ad");
+            }
+        }
+    }
+
+    private HttpStatusCode sendRequestToDeleteInoImageFromDB(String token, Long imageId) throws ImageNotDeletedException {
+        try {
+            return apiService.requestToDeleteOneImageFromDB(apiService.buildUrl(
+                    imageProperties.getPrefix(),
+                    imageProperties.getHost(),
+                    imageProperties.getPort(),
+                    imageProperties.getEndpoints().getDelOneImageFromCard(),
+                    imageId
+            ),token,apiKey);
+        } catch (Exception e){
+            throw new ImageNotDeletedException("Due to an error, the image was not deleted");
+        }
+
     }
 
     @Transactional
-    public void delOneImageInCard(Long cardId, Long imageId) throws CardNotFoundException {
-
+    public void delOneImageInCard(Long cardId, Long imageId, String authorization) throws CardNotFoundException, TokenNotExistException, ImageNotDeletedException, UsernameNotFoundException, NotEnoughPermissionsException {
+        String token = authorization.substring(7);
+        checkToken(token);
         CardModel card = cardRepo.findById(cardId)
                 .orElseThrow(() -> new CardNotFoundException("Card with id doesn't exist"));
 
+        checkUserPermissions(token,card);
+
+        if (sendRequestToDeleteInoImageFromDB(token,imageId) != HttpStatus.OK){
+            throw new ImageNotDeletedException("Due to an error, the image was not deleted");
+        }
+
         card.getImgIds().remove(imageId);
 
+        String key = "card%d".formatted(cardId);
+
+        if (redis.exists(key)){
+            redis.del(key);
+        }
+        
         cardRepo.save(card);
     }
 }

@@ -1,9 +1,6 @@
 package karm.van.controller;
 
-import karm.van.exception.ImageLimitException;
-import karm.van.exception.ImageNotDeletedException;
-import karm.van.exception.ImageNotFoundException;
-import karm.van.exception.ImageNotSavedException;
+import karm.van.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -15,6 +12,21 @@ public class ExceptionHandlerController {
 
     @ExceptionHandler(ImageLimitException.class)
     public ResponseEntity<String> imageLimitException(ImageLimitException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(TokenNotExistException.class)
+    public ResponseEntity<String> tokenNotExistException(TokenNotExistException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(InvalidApiKeyException.class)
+    public ResponseEntity<String> invalidApiKeyException(InvalidApiKeyException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(UsernameNotFoundException.class)
+    public ResponseEntity<String> usernameNotFoundException(UsernameNotFoundException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
@@ -30,6 +42,11 @@ public class ExceptionHandlerController {
 
     @ExceptionHandler(ImageNotSavedException.class)
     public ResponseEntity<String> imageLoadException(ImageNotSavedException ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(ImageNotLinkException.class)
+    public ResponseEntity<String> imageNotLinkException(ImageNotLinkException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 

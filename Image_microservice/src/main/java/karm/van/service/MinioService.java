@@ -2,6 +2,7 @@ package karm.van.service;
 
 import jakarta.annotation.PostConstruct;
 import karm.van.exception.ImageNotDeletedException;
+import karm.van.exception.ImageNotFoundException;
 import karm.van.exception.ImageNotSavedException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -11,7 +12,9 @@ import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.CopyObjectRequest;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 import java.net.URI;
@@ -40,6 +43,27 @@ public class MinioService {
                 .build();
     }
 
+    public void moveObject(String oldBucketName, String newBucketName, String fileName) throws ImageNotFoundException {
+        try {
+
+            CopyObjectRequest copyObjectRequest = CopyObjectRequest.builder()
+                    .sourceBucket(oldBucketName)
+                    .sourceKey(fileName)
+                    .destinationBucket(newBucketName)
+                    .destinationKey(fileName)
+                    .build();
+            client.copyObject(copyObjectRequest);
+
+
+            delObject(oldBucketName, fileName);
+
+        } catch (NoSuchKeyException e) {
+            throw new ImageNotFoundException("The image was not found in the specified bucket: " + oldBucketName);
+        } catch (Exception e) {
+            throw new RuntimeException("An error occurred while moving the image: " + e.getMessage(), e);
+        }
+    }
+
     public void putObject(String bucketName, MultipartFile file, String fileName) throws ImageNotSavedException {
         try {
             PutObjectRequest putObjectRequest = PutObjectRequest.builder()
@@ -50,7 +74,6 @@ public class MinioService {
         }catch (Exception e){
             throw new ImageNotSavedException("An error occurred while uploading the image");
         }
-
     }
 
     public void delObject(String bucketName, String imageName) throws ImageNotDeletedException {

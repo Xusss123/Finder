@@ -1,45 +1,41 @@
 package karm.van.service;
 
-import jakarta.annotation.PostConstruct;
-import karm.van.config.AdsMicroServiceProperties;
+import karm.van.config.AuthenticationMicroServiceProperties;
 import karm.van.dto.ImageDto;
-import karm.van.exception.ImageLimitException;
-import karm.van.exception.ImageNotDeletedException;
-import karm.van.exception.ImageNotFoundException;
-import karm.van.exception.ImageNotSavedException;
+import karm.van.exception.*;
 import karm.van.model.ImageModel;
 import karm.van.repository.ImageRepo;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
 
-@Log4j2
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ImageService {
     private final MinioService minioService;
     private final ImageRepo imageRepo;
-    private final AdsMicroServiceProperties adsProperties;
-    private final RestService restService;
+    private final AuthenticationMicroServiceProperties authProperties;
+    private final ApiService apiService;
 
-    @Value("${minio.bucketNames.image-bucket}")
-    private String minioImageBucket;
+    @Value("${microservices.x-api-key}")
+    private String apiKey;
+
 
     @Value("${card.images.count}")
     private int allowedImagesCount;
 
-    private void saveImage(MultipartFile file, String fileName) throws ImageNotSavedException {
+    private void saveImage(MultipartFile file, String fileName, String bucketName) throws ImageNotSavedException {
         try {
-            minioService.putObject(minioImageBucket,file, fileName);
+            minioService.putObject(bucketName,file, fileName);
         }catch (Exception e){
             log.error("The image was not saved: "+e.getMessage()+" - "+e.getClass());
             throw new ImageNotSavedException(e.getMessage());
@@ -55,8 +51,26 @@ public class ImageService {
         }
     }
 
+    @Async
+    protected void delImageAsync(String imageBucket, String imageName) throws ImageNotDeletedException {
+        delImage(imageBucket,imageName);
+    }
+
+    private void checkToken(String token) throws TokenNotExistException {
+        if (!apiService.validateToken(token,
+                apiService.buildUrl(authProperties.getPrefix(),
+                        authProperties.getHost(),
+                        authProperties.getPort(),
+                        authProperties.getEndpoints().getValidateToken()
+                )
+        )){
+            throw new TokenNotExistException("Invalid token or expired");
+        }
+    }
+
     @Transactional
-    public List<Long> addCardImages(List<MultipartFile> files, int currentCardImagesCount) throws ImageNotSavedException, ImageLimitException{
+    public List<Long> addCardImages(List<MultipartFile> files, int currentCardImagesCount, String authorization, String bucketName) throws ImageNotSavedException, ImageLimitException, TokenNotExistException {
+        checkToken(authorization.substring(7));
         if (currentCardImagesCount<allowedImagesCount){
             int freeMemory = allowedImagesCount - currentCardImagesCount;
 
@@ -71,7 +85,7 @@ public class ImageService {
 
                 ImageModel imageModel = ImageModel.builder()
                         .imageName(fileName)
-                        .imageBucket(minioImageBucket)
+                        .imageBucket(bucketName)
                         .build();
                 try {
                     imageRepo.save(imageModel);
@@ -85,7 +99,7 @@ public class ImageService {
                 String fileName = unique_uuid+"-"+file.getOriginalFilename();
 
                 try {
-                    saveImage(file,fileName);
+                    saveImage(file,fileName,bucketName);
                 }catch (Exception e){
                     throw new RuntimeException(new ImageNotSavedException("There is a problem with image processing, so the article has not been published"));
                 }
@@ -96,43 +110,60 @@ public class ImageService {
         }
     }
 
-    private void deleteImagesFromMinio(List<Long> imagesId){
-        imagesId.parallelStream().forEach(imageId->
-                imageRepo.findById(imageId).ifPresent(image->{
+    private void deleteImagesFromMinio(List<ImageModel> images){
+        images.parallelStream().forEach(image->{
             try {
                 delImage(image.getImageBucket(), image.getImageName());
             } catch (ImageNotDeletedException e) {
                 throw new RuntimeException(new ImageNotDeletedException("An error occurred while deleting the card"));
             }
-        }));
+        });
     }
 
     @Transactional
-    public void deleteAllImagesFromCard(List<Long> imagesId) {
-        deleteImagesFromMinio(imagesId);
+    public void moveAllImagesBetweenBuckets(List<Long> imagesId, String authorization, String targetBucket) throws TokenNotExistException{
+        String token = authorization.substring(7);
+        checkToken(token);
+
+        List<ImageModel> images = imageRepo.findAllById(imagesId);
+        images.parallelStream().forEach(imageModel -> {
+            try {
+                minioService.moveObject(imageModel.getImageBucket(), targetBucket, imageModel.getImageName());
+                imageModel.setImageBucket(targetBucket);
+                imageRepo.save(imageModel);
+            } catch (ImageNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Transactional
+    public void deleteAllImagesFromCard(List<Long> imagesId,String authorization) throws TokenNotExistException {
+        checkToken(authorization.substring(7));
+        List<ImageModel> images = imageRepo.findAllById(imagesId);
+        images.parallelStream().forEach(imageModel -> {
+            try {
+                minioService.delObject(imageModel.getImageBucket(),imageModel.getImageName());
+            } catch (ImageNotDeletedException e) {
+                throw new RuntimeException(e);
+            }
+        });
+        deleteImagesFromMinio(images);
         imageRepo.deleteAllById(imagesId);
-        log.debug(imagesId.toString());
     }
 
     @Transactional
-    public void deleteImageFromCard(Long cardId, Long imageId) throws ImageNotFoundException, ImageNotDeletedException {
+    public void deleteImageFromCard(Long imageId, String authorization, String bucketName) throws ImageNotFoundException, ImageNotDeletedException, TokenNotExistException {
+        String token = authorization.substring(7);
+        checkToken(token);
         ImageModel imageModel = imageRepo.findById(imageId)
                 .orElseThrow(() -> new ImageNotFoundException("Image with this id doesn't exist"));
 
-        String url = restService.buildUrl(
-                adsProperties.getPrefix(),
-                adsProperties.getHost(),
-                adsProperties.getPort(),
-                adsProperties.getEndpoints().getDelImage(),
-                cardId,
-                imageId);
-
-        HttpStatusCode statusCode = restService.requestToDelOneImage(url);
-
-        if (statusCode == HttpStatus.OK) {
-            minioService.delObject(minioImageBucket, imageModel.getImageName());
+        try {
+            minioService.delObject(bucketName, imageModel.getImageName());
             imageRepo.delete(imageModel);
-        } else {
+        } catch (Exception e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
             throw new ImageNotDeletedException("Failed to delete image");
         }
     }
@@ -141,8 +172,64 @@ public class ImageService {
         return new ImageDto(imageModel.getId(),imageModel.getImageBucket(),imageModel.getImageName());
     }
 
-    public List<ImageDto> getImages(List<Long> imagesId) {
+    public List<ImageDto> getImages(List<Long> imagesId,String authorization) throws TokenNotExistException {
+        checkToken(authorization.substring(7));
         return imageRepo.findAllById(imagesId)
                 .stream().map(this::imageModelToDto).toList();
+    }
+
+    public boolean checkNoneEqualsApiKey(String key) {
+        return !key.equals(apiKey);
+    }
+
+    private Long sendRequestToLinkImageAndUser(String token, Long profileImageId) throws ImageNotLinkException {
+        String uri = apiService.buildUrl(
+                authProperties.getPrefix(),
+                authProperties.getHost(),
+                authProperties.getPort(),
+                authProperties.getEndpoints().getAddProfileImage(),
+                profileImageId
+        );
+
+        try {
+            Long result = apiService.requestToLinkImageAndUser(uri,token,apiKey);
+            if (result == null){
+                throw new RuntimeException();
+            }
+
+            return result;
+        } catch (Exception e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            throw new ImageNotLinkException("There was a problem while linking the image");
+        }
+    }
+
+    @Transactional
+    public void addProfileImage(MultipartFile profileImage, String authorization, String minioProfileImageBucket) throws TokenNotExistException, ImageNotSavedException, ImageNotDeletedException {
+        String token = authorization.substring(7);
+        checkToken(token);
+        String fileName = UUID.randomUUID()+"-"+profileImage.getOriginalFilename();
+
+        ImageModel imageModel = ImageModel.builder()
+                .imageName(fileName)
+                .imageBucket(minioProfileImageBucket)
+                .build();
+
+        imageRepo.save(imageModel);
+
+        try {
+            saveImage(profileImage,fileName,minioProfileImageBucket);
+            Long oldImageId = sendRequestToLinkImageAndUser(token,imageModel.getId());
+            if (oldImageId>0){
+                ImageModel oldProfileImage = imageRepo.getReferenceById(oldImageId);
+                delImageAsync(oldProfileImage.getImageBucket(),oldProfileImage.getImageName());
+            }
+        } catch (ImageNotSavedException e) {
+            throw new ImageNotSavedException("There is a problem with image processing");
+        } catch (ImageNotLinkException e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            delImageAsync(minioProfileImageBucket,fileName);
+            throw new ImageNotSavedException("There is a problem with image processing");
+        }
     }
 }

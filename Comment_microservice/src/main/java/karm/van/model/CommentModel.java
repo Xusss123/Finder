@@ -28,4 +28,6 @@ public class CommentModel {
     @ManyToOne
     @JsonBackReference
     private CardModel card;
+
+    private Long userId;
 }
