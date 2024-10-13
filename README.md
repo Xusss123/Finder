@@ -312,7 +312,8 @@ Manages user authentication and authorization
     - `Authorization` — The JWT token for authentication.
 - **Response Codes**:
     - `200 OK`: User deleted successfully.
-    - `400 Bad Request`: If there is an issue deleting.
+    - `400 Bad Request`: Trouble with the token.
+    - `500 Internal Server Error`: Problems with deleting a user on the server side.
 
 ---
 
