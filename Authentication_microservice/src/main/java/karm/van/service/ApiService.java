@@ -4,11 +4,15 @@ import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Component
@@ -34,12 +38,70 @@ public class ApiService {
         return uriBuilder.toUriString();
     }
 
+    private HttpStatusCode sendPostRequest(String url, String token, String apiKey) {
+        return Objects.requireNonNull(
+                webClient
+                        .post()
+                        .uri(url)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .headers(headers -> {
+                            headers.setBearerAuth(token);
+                            headers.set("x-api-key", apiKey);
+                        })
+                        .retrieve()
+                        .toBodilessEntity()
+                        .block()
+        ).getStatusCode();
+    }
+
+    private String getIds(List<Long> imagesId){
+        return imagesId.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+    }
+
+    public void moveImagesToProfileImagePackage(String url, String token, String apiKey) {
+        sendMoveRequest(url,token,apiKey);
+    }
+
+    public HttpStatusCode moveImagesToTrashPackage(String url, List<Long> imagesId, String token, String apiKey) {
+        String ids = getIds(imagesId);
+
+        String fullUrl = UriComponentsBuilder.fromHttpUrl(url)
+                .queryParam("ids", ids)
+                .queryParam("toTrash",true)
+                .toUriString();
+
+        return sendMoveRequest(fullUrl,token,apiKey);
+    }
+
+    public HttpStatusCode sendDeleteImagesFromMinioRequest(String url, List<Long> imagesId, String token, String apiKey) {
+        String ids = getIds(imagesId);
+
+        String fullUrl = UriComponentsBuilder.fromHttpUrl(url)
+                .queryParam("ids", ids)
+                .toUriString();
+
+        return sendDeleteRequest(fullUrl,token,apiKey);
+    }
+
+    private HttpStatusCode sendDeleteRequest(String url, String token, String apiKey) {
+        return sendDeleteRequest(url, token, apiKey != null ? Optional.of(apiKey) : Optional.empty());
+    }
+
     private HttpStatusCode sendDeleteRequest(String url, String token) {
+        return sendDeleteRequest(url, token, Optional.empty());
+    }
+
+    private HttpStatusCode sendDeleteRequest(String url, String token, Optional<String> apiKey) {
         return Objects.requireNonNull(
                         webClient
                                 .delete()
                                 .uri(url)
-                                .headers(header->header.setBearerAuth(token))
+                                .headers(headers -> {
+                                    headers.setBearerAuth(token);
+                                    apiKey.ifPresent(key -> headers.set("x-api-key", key));
+                                })
                                 .retrieve()
                                 .toBodilessEntity()
                                 .block())
@@ -48,6 +110,10 @@ public class ApiService {
 
     public HttpStatusCode requestToDelCard(String url, String token) {
         return sendDeleteRequest(url,token);
+    }
+
+    private HttpStatusCode sendMoveRequest(String url,String token,String apiKey){
+        return sendPostRequest(url,token,apiKey);
     }
 
 }

@@ -138,6 +138,24 @@ public class ImageService {
     }
 
     @Transactional
+    public void moveImageBetweenBuckets(Long imagesId, String authorization, String targetBucket) throws TokenNotExistException, ImageNotFoundException {
+        String token = authorization.substring(7);
+        checkToken(token);
+
+        ImageModel image = imageRepo.findById(imagesId)
+                .orElseThrow(() -> new ImageNotFoundException("Image with this id doesn't exist"));
+
+        try {
+            minioService.moveObject(image.getImageBucket(), targetBucket, image.getImageName());
+            image.setImageBucket(targetBucket);
+            imageRepo.save(image);
+        } catch (ImageNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    @Transactional
     public void deleteAllImagesFromCard(List<Long> imagesId,String authorization) throws TokenNotExistException {
         checkToken(authorization.substring(7));
         List<ImageModel> images = imageRepo.findAllById(imagesId);

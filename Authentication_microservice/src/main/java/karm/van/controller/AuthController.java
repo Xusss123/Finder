@@ -3,9 +3,7 @@ package karm.van.controller;
 import karm.van.dto.request.AuthRequest;
 import karm.van.dto.request.UserDtoRequest;
 import karm.van.dto.response.AuthResponse;
-import karm.van.exception.InvalidApiKeyException;
-import karm.van.exception.NotEnoughPermissionsException;
-import karm.van.exception.UserAlreadyExist;
+import karm.van.exception.*;
 import karm.van.service.JwtService;
 import karm.van.service.MyUserDetailsService;
 import karm.van.service.MyUserService;
@@ -178,6 +176,9 @@ public class AuthController {
             return ResponseEntity.ok("User deleted successfully");
         } catch (BadCredentialsException e){
             return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (CardNotDeletedException | ImageNotMovedException | ImageNotDeletedException e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Due to an internal error, your account was not deleted");
         }
     }
 
