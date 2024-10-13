@@ -1,11 +1,10 @@
 package karm.van.service;
 
 import karm.van.config.AdsMicroServiceProperties;
+import karm.van.config.ImageMicroServiceProperties;
 import karm.van.dto.request.UserDtoRequest;
 import karm.van.dto.response.UserDtoResponse;
-import karm.van.exception.NotEnoughPermissionsException;
-import karm.van.exception.UserAlreadyExist;
-import karm.van.exception.UserNotDeletedException;
+import karm.van.exception.*;
 import karm.van.model.MyUser;
 import karm.van.repo.MyUserRepo;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +12,7 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -33,6 +33,7 @@ public class MyUserService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AdsMicroServiceProperties adsProperties;
+    private final ImageMicroServiceProperties imageProperties;
     private final ApiService apiService;
 
     @Value("${microservices.x-api-key}")
@@ -132,19 +133,90 @@ public class MyUserService {
         }
     }
 
+    private void moveImagesToTrashBucket(List<Long> imagesId, String token) throws ImageNotMovedException {
+        String imageUrl = apiService.buildUrl(
+                imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getMoveImage()
+        );
+        try {
+            HttpStatusCode httpStatusCode = apiService.moveImagesToTrashPackage(imageUrl, imagesId, token, apiKey);
+            if (httpStatusCode != HttpStatus.OK) {
+                throw new ImageNotMovedException();
+            }
+        }catch (Exception e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            throw new ImageNotMovedException("An error occurred on the server side during the image moving");
+        }
+    }
+
+    private void requestToDeleteImagesFromMinio(List<Long> imageIds,String token) throws ImageNotDeletedException {
+        String url = apiService.buildUrl(
+                imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getDelImagesFromMinio()
+        );
+
+        try {
+            HttpStatusCode httpStatusCode = apiService.sendDeleteImagesFromMinioRequest(url, imageIds, token, apiKey);
+            if (httpStatusCode != HttpStatus.OK) {
+                throw new ImageNotDeletedException();
+            }
+        }catch (Exception e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            throw new ImageNotDeletedException("An error occurred on the server side during the image deleting");
+        }
+    }
+
+    @Async
+    protected void rollBackImages(Long imageId, String token){
+        String imageUrl = apiService.buildUrl(
+                imageProperties.getPrefix(),
+                imageProperties.getHost(),
+                imageProperties.getPort(),
+                imageProperties.getEndpoints().getMoveImageToProfile(),
+                imageId
+                );
+
+
+        apiService.moveImagesToProfileImagePackage(imageUrl, token, apiKey);
+    }
+
+    private void deleteAllUserCards(MyUser user, String token) throws CardNotDeletedException {
+        try {
+            user.getCards().parallelStream()
+                    .forEach(card-> {
+                        try {
+                            sendRequestToDelUserCard(token,card);
+                        } catch (UserNotDeletedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        }catch (Exception e){
+            throw new CardNotDeletedException();
+        }
+    }
+
     @Transactional
-    public void delUser(String authorization){
+    public void delUser(String authorization) throws ImageNotMovedException, CardNotDeletedException, ImageNotDeletedException {
         String token = authorization.substring(7);
-        MyUser user = getUserAndCheckToken(token);
-        user.getCards().parallelStream()
-                .forEach(card-> {
-                    try {
-                        sendRequestToDelUserCard(token,card);
-                    } catch (UserNotDeletedException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
-        userRepo.delete(user);
+        MyUser user = getUserAndCheckToken(authorization);
+        try {
+            moveImagesToTrashBucket(List.of(user.getProfileImage()),token);
+            if (!user.getCards().isEmpty()){
+                deleteAllUserCards(user,token);
+            }
+            requestToDeleteImagesFromMinio(List.of(user.getProfileImage()),token);
+            userRepo.delete(user);
+        }catch (ImageNotMovedException | ImageNotDeletedException e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            throw e;
+        }catch (CardNotDeletedException e){
+            rollBackImages(user.getProfileImage(),token);
+            throw e;
+        }
     }
 
     @Transactional

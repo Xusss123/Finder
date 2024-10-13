@@ -25,7 +25,9 @@ public class CommentController {
     private final CommentService commentService;
 
     @PostMapping("/add/{cardId}")
-    public ResponseEntity<?> addComment(@PathVariable Long cardId, @RequestPart("commentDto") CommentDto commentDto, @RequestHeader("Authorization") String authorization) {
+    public ResponseEntity<?> addComment(@PathVariable Long cardId,
+                                        @RequestPart("commentDto") CommentDto commentDto,
+                                        @RequestHeader("Authorization") String authorization) {
         try {
             commentService.addComment(cardId, commentDto, authorization);
             return ResponseEntity.ok("Comment added successfully");
@@ -75,7 +77,8 @@ public class CommentController {
     }
 
     @DeleteMapping("/del/{commentId}")
-    public ResponseEntity<?> deleteOneComment(@PathVariable Long commentId, @RequestHeader("Authorization") String authorization){
+    public ResponseEntity<?> deleteOneComment(@PathVariable Long commentId,
+                                              @RequestHeader("Authorization") String authorization){
         try {
             commentService.deleteOneComment(commentId, authorization);
             return ResponseEntity.ok("Comment deleted successfully");

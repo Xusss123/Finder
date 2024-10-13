@@ -17,5 +17,8 @@ public class ImageMicroServiceProperties {
     @Getter
     public static class Endpoints{
         private String saveProfileImage;
+        private String moveImage;
+        private String delImagesFromMinio;
+        private String moveImageToProfile;
     }
 }
