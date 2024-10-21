@@ -275,13 +275,13 @@ Manages user authentication and authorization
 
 ---
 
-#### **5. GET** `/auth/get-user`
+#### **5. GET** `/auth/profile/{userName}`
 
 - **Description**: Retrieve user details.
 - **Request Header**:
     - `Authorization` — The JWT token for authentication.
 - **Request Parameters**:
-    - `userId` (Optional) — If it is required to get data not of the token owner, but of another user by his ID.
+    - `userName` — Name of the user whose data you want to retrieve.
 - **Response Codes**:
     - `200 OK`: Returns user details:
       ```json
@@ -301,11 +301,31 @@ Manages user authentication and authorization
         "skills": "Java, Spring Boot, Microservices, Docker, Kubernetes"
       }
       ```
-    - `401 Unauthorized`: If the token is invalid or user not found.
+    - `500 Internal Server Error`: If there is a server error.
 
 ---
 
-#### **6. DELETE** `/auth/user/del`
+#### **6. PATCH** `/auth/user/patch`
+
+- **Description**: Update selected fields of the authenticated user.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Request Parameters** *(All fields are optional)*:
+    - `name` — New user name. *(If you change this field, you will have to take a new access token)*
+    - `email` — New email address.
+    - `firstName` — New first name.
+    - `lastName` — New last name.
+    - `description` — New description for the user.
+    - `country` — New country of residence.
+    - `roleInCommand` — New role within the command/project.
+    - `skills` — New skills of the user.
+- **Response Codes**:
+    - `200 OK`: Returns success message.
+    - `400 Bad Request`: If the request contains invalid data or some of the optional parameters are incorrect.
+
+---
+
+#### **7. DELETE** `/auth/user/del`
 
 - **Description**: Deletes the token owner.
 - **Request Header**:
