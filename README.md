@@ -275,7 +275,7 @@ Manages user authentication and authorization
 
 ---
 
-#### **5. GET** `/auth/profile/{userName}`
+#### **5. GET** `/user/profile/{userName}`
 
 - **Description**: Retrieve user details.
 - **Request Header**:
@@ -305,7 +305,7 @@ Manages user authentication and authorization
 
 ---
 
-#### **6. PATCH** `/auth/user/patch`
+#### **6. PATCH** `/user/patch`
 
 - **Description**: Update selected fields of the authenticated user.
 - **Request Header**:
@@ -325,7 +325,7 @@ Manages user authentication and authorization
 
 ---
 
-#### **7. DELETE** `/auth/user/del`
+#### **7. DELETE** `/user/del`
 
 - **Description**: Deletes the token owner.
 - **Request Header**:
