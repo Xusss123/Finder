@@ -1,11 +1,9 @@
 package karm.van.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import jakarta.servlet.http.HttpServletRequest;
 import karm.van.dto.request.AuthRequest;
 import karm.van.dto.request.UserDtoRequest;
 import karm.van.dto.response.AuthResponse;
-import karm.van.exception.*;
+import karm.van.exception.UserAlreadyExist;
 import karm.van.service.JwtService;
 import karm.van.service.MyUserDetailsService;
 import karm.van.service.MyUserService;
@@ -19,11 +17,9 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-import java.util.Optional;
 
 @Log4j2
 @RequiredArgsConstructor
