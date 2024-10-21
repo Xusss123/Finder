@@ -10,7 +10,4 @@ public class UserAlreadyExist extends Exception{
         super(message);
     }
 
-    public UserAlreadyExist(){
-        super();
-    }
 }

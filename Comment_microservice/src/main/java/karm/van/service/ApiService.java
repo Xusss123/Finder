@@ -37,12 +37,17 @@ public class ApiService {
         return uriBuilder.toUriString();
     }
 
-    private <T> T sendGetResponse(String uri, String token, Class<T> responseType){
+    private <T> T sendGetResponse(String uri, String token, Class<T> responseType, String apiKey){
         try {
             return webClient
                     .get()
                     .uri(uri)
-                    .headers(httpHeaders -> httpHeaders.setBearerAuth(token))
+                    .headers(httpHeaders -> {
+                        httpHeaders.setBearerAuth(token);
+                        if (apiKey !=null && !apiKey.trim().isEmpty()){
+                            httpHeaders.set("x-api-key",apiKey);
+                        }
+                    })
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, clientResponse -> {
                         throw new RuntimeException();
@@ -86,23 +91,23 @@ public class ApiService {
     }
 
     public Boolean validateToken(String token, String url) {
-        Map<?, ?> responseMap = sendGetResponse(url, token, Map.class);
+        Map<?, ?> responseMap = sendGetResponse(url, token, Map.class,null);
         return responseMap != null && responseMap.containsKey("valid") && (Boolean) responseMap.get("valid");
     }
 
-    private UserDtoRequest fetchUserData(String uri, String token) {
-        return sendGetResponse(uri,token, UserDtoRequest.class);
+    private UserDtoRequest fetchUserData(String uri, String token, String apiKey) {
+        return sendGetResponse(uri,token, UserDtoRequest.class, apiKey);
     }
 
-    public UserDtoRequest getUserByToken(String url, String token) {
-        return fetchUserData(url, token);
+    public UserDtoRequest getUserByToken(String url, String token, String apiKey) {
+        return fetchUserData(url, token, apiKey);
     }
 
-    public UserDtoRequest getUserById(String url, String token, Long userId) {
+    public UserDtoRequest getUserById(String url, String token, Long userId, String apiKey) {
         String uri = UriComponentsBuilder.fromHttpUrl(url)
                 .queryParam("userId", userId)
                 .toUriString();
-        return fetchUserData(uri, token);
+        return fetchUserData(uri, token, apiKey);
     }
 
     public HttpStatusCode addCommentToUser(String url,String token,String apiKey) throws NullPointerException{

@@ -10,7 +10,4 @@ public class ImageNotDeletedException extends Exception{
         super(message);
     }
 
-    public ImageNotDeletedException(){
-        super();
-    }
 }

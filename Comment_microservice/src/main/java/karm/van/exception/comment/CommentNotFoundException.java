@@ -10,7 +10,4 @@ public class CommentNotFoundException extends Exception{
         super(message);
     }
 
-    public CommentNotFoundException(){
-        super();
-    }
 }

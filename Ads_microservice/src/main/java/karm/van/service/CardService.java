@@ -122,7 +122,7 @@ public class CardService {
                 authenticationProperties.getHost(),
                 authenticationProperties.getPort(),
                 authenticationProperties.getEndpoints().getUser()
-        ), token);
+        ), token,apiKey);
 
         if (user == null) {
             throw new UsernameNotFoundException("User not found");
@@ -137,7 +137,7 @@ public class CardService {
                 authenticationProperties.getHost(),
                 authenticationProperties.getPort(),
                 authenticationProperties.getEndpoints().getUser()
-        ), token,userId);
+        ), token,userId,apiKey);
 
         if (user == null) {
             throw new UsernameNotFoundException("User not found");
@@ -259,7 +259,7 @@ public class CardService {
                 imageProperties.getEndpoints().getGetImages()
         );
 
-        return apiService.getCardImagesRequest(card.getImgIds(),url,token);
+        return apiService.getCardImagesRequest(card.getImgIds(),url,token,apiKey);
     }
 
     private FullCardDtoForOutput cacheCard(Long cardId, String key, String token) throws CardNotFoundException, SerializationException, UsernameNotFoundException {
@@ -553,5 +553,22 @@ public class CardService {
         }
         
         cardRepo.save(card);
+    }
+
+    public Boolean checkApiKey(String apiKey){
+        return apiKey.equals(this.apiKey);
+    }
+
+    public List<CardDto> getAllUserCards(String authorization, String apiKey, Long userId) throws TokenNotExistException {
+        checkToken(authorization.substring(7));
+        if (!checkApiKey(apiKey)){
+            throw new TokenNotExistException("Invalid apiKey");
+        }
+
+        return cardRepo.findAllByUserId(userId)
+                .parallelStream()
+                .map(card->new CardDto(card.getTitle(),card.getText()))
+                .toList();
+
     }
 }

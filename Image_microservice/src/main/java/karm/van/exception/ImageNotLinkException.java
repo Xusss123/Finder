@@ -10,7 +10,4 @@ public class ImageNotLinkException extends Exception{
         super(message);
     }
 
-    public ImageNotLinkException(){
-        super();
-    }
 }

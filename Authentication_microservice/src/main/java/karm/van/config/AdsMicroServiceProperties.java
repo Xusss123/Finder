@@ -17,5 +17,6 @@ public class AdsMicroServiceProperties {
     @Getter
     public static class Endpoints{
         private String delCard;
+        private String getUserCards;
     }
 }

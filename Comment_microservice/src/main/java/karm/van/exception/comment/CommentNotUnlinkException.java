@@ -10,7 +10,4 @@ public class CommentNotUnlinkException extends Exception{
         super(message);
     }
 
-    public CommentNotUnlinkException(){
-        super();
-    }
 }

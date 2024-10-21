@@ -10,7 +10,4 @@ public class CommentNotSavedException extends Exception{
         super(message);
     }
 
-    public CommentNotSavedException(){
-        super();
-    }
 }

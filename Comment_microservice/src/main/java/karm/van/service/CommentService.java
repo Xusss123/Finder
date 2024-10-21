@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import karm.van.config.AuthenticationMicroServiceProperties;
+import karm.van.dto.CommentAuthorDto;
+import karm.van.dto.CommentDtoResponse;
 import karm.van.dto.UserDtoRequest;
 import karm.van.exception.card.CardNotFoundException;
 import karm.van.exception.comment.CommentNotFoundException;
@@ -31,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import redis.clients.jedis.JedisPooled;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -76,8 +79,23 @@ public class CommentService {
                 authProperties.getPrefix(),
                 authProperties.getHost(),
                 authProperties.getPort(),
-                authProperties.getEndpoints().getGetUserByToken()
-        ), token);
+                authProperties.getEndpoints().getUser()
+        ),token,apiKey);
+
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found");
+        }
+
+        return user;
+    }
+
+    private UserDtoRequest requestToGetUserById(String token, Long userId) throws UsernameNotFoundException {
+        UserDtoRequest user = apiService.getUserById(apiService.buildUrl(
+                authProperties.getPrefix(),
+                authProperties.getHost(),
+                authProperties.getPort(),
+                authProperties.getEndpoints().getUser()
+        ), token,userId,apiKey);
 
         if (user == null) {
             throw new UsernameNotFoundException("User not found");
@@ -124,7 +142,7 @@ public class CommentService {
     @Transactional
     public void addComment(Long cardId, CommentDto commentDto, String authorization) throws InvalidDataException, CardNotFoundException, TokenNotExistException {
         String token = authorization.substring(7);
-         checkToken(token);
+        checkToken(token);
         try {
             String commentText = commentDto.text();
 
@@ -150,22 +168,35 @@ public class CommentService {
         } catch (InvalidDataException | CardNotFoundException e){
             throw e;
         } catch (Exception e){
-            log.error("An unknown error occurred while deleting the card: "+e.getMessage()+" - "+e.getClass());
+            log.error("An unknown error occurred while adding comment: "+e.getMessage()+" - "+e.getClass());
             throw new RuntimeException("Unexpected error occurred", e);
         }
     }
 
-    private List<CommentModel> cacheComments(Long id,int limit,int page,String commentsKeyForCache) throws SerializationException {
+    private List<CommentDtoResponse> cacheComments(Long id,int limit,int page,String commentsKeyForCache, String token) throws SerializationException {
         Page<CommentModel> comments = commentRepo.getCommentModelByCard_Id(id, PageRequest.of(page,limit));// Идем в БД
 
         if (comments.isEmpty()){// Если комментариев вообще нет
             return List.of();//Возвращаем пустой список
         }
 
+        List<CommentDtoResponse> listOfComments = new ArrayList<>();
+
         comments.stream().parallel()
                 .forEach(comment->{
+                    CommentAuthorDto authorDto;
+                    try{
+                        authorDto = new CommentAuthorDto(requestToGetUserById(token,comment.getUserId()).name());
+                    }catch (UsernameNotFoundException e){
+                        throw new RuntimeException(e.getMessage());
+                    }
+                    CommentDtoResponse commentDtoResponse = new CommentDtoResponse(
+                            comment.getText(),
+                            comment.getCreatedAt(),
+                            authorDto);
                     try {
-                        redis.rpush(commentsKeyForCache, objectMapper.writeValueAsString(comment));// Кешируем
+                        redis.rpush(commentsKeyForCache, objectMapper.writeValueAsString(commentDtoResponse));
+                        listOfComments.add(commentDtoResponse);
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(new SerializationException("An error occurred during serialization"));
                     }
@@ -173,12 +204,12 @@ public class CommentService {
 
         redis.expire(commentsKeyForCache, 60); // Устанавливаем время жизни равное минуте
 
-        return comments.getContent();
+        return listOfComments;
     }
 
-//TODO вместо id авторов получать их имена и данные
-    public List<CommentModel> getComments(Long id,int limit,int page, String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException {
-        checkToken(authorization.substring(7));
+    public List<CommentDtoResponse> getComments(Long id,int limit,int page, String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException {
+        String token = authorization.substring(7);
+        checkToken(token);
         try {
             if (cardRepo.existsById(id)){// Проверяем существует ли такая карточка
                 String commentsKeyForCache = "comments:card:"+id; // Ключ в редисе от списка комментариев
@@ -186,13 +217,13 @@ public class CommentService {
                 List<String> cachedComments = redis.lrange(commentsKeyForCache, 0, limit - 1);// Проверяем есть ли закешированные результаты
 
                 if (cachedComments.isEmpty()){// Если кеша нет
-                    return cacheComments(id,limit,page,commentsKeyForCache);
+                    return cacheComments(id,limit,page,commentsKeyForCache,token);
 
                 }else {// Если кеш найден
                     return cachedComments.stream()
                             .map(comment-> {
                                 try {
-                                    return objectMapper.readValue(comment,CommentModel.class);// Десирализуем текст в классы и складываем в лист
+                                    return objectMapper.readValue(comment,CommentDtoResponse.class);// Десирализуем текст в классы и складываем в лист
                                 } catch (JsonProcessingException e) {
                                     throw new RuntimeException(new SerializationException("An error occurred during deserialization"));
                                 }

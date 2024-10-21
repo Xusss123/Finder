@@ -17,7 +17,7 @@ public class AuthenticationMicroServiceProperties {
     @Getter
     public static class Endpoints{
         private String validateToken;
-        private String getUserByToken;
+        private String user;
         private String linkCommentAndUser;
         private String unlinkCommentAndUser;
     }

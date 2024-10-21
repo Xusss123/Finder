@@ -1,7 +1,6 @@
 package karm.van.controller;
 
 import karm.van.exception.card.CardNotFoundException;
-import karm.van.exception.comment.CommentNotDeletedException;
 import karm.van.exception.comment.CommentNotFoundException;
 import karm.van.exception.comment.CommentNotSavedException;
 import karm.van.exception.comment.CommentNotUnlinkException;
@@ -69,8 +68,4 @@ public class ExceptionHandlerController {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    @ExceptionHandler(CommentNotDeletedException.class)
-    public ResponseEntity<String> commentNotDeletedException(CommentNotDeletedException ex){
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
-    }
 }

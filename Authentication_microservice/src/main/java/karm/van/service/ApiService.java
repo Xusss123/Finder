@@ -1,8 +1,11 @@
 package karm.van.service;
 
 import jakarta.annotation.PostConstruct;
+import karm.van.dto.response.ProfileImageDtoResponse;
+import karm.van.dto.response.UserCardResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -108,12 +111,65 @@ public class ApiService {
                 .getStatusCode();
     }
 
+    private <T> T sendGetResponse(String uri, String token, ParameterizedTypeReference<T> responseType, String apiKey){
+        try {
+            return webClient
+                    .get()
+                    .uri(uri)
+                    .headers(httpHeaders -> {
+                        httpHeaders.set("x-api-key",apiKey);
+                        httpHeaders.setBearerAuth(token);
+                    })
+                    .retrieve()
+                    .bodyToMono(responseType)
+                    .block();
+        }catch (Exception e){
+            return null;
+        }
+
+    }
+
+    private <T> T sendGetResponse(String uri, String token, String apiKey, Class<T> responseType){
+        try {
+            return webClient
+                    .get()
+                    .uri(uri)
+                    .headers(httpHeaders -> {
+                        httpHeaders.set("x-api-key",apiKey);
+                        httpHeaders.setBearerAuth(token);
+                    })
+                    .retrieve()
+                    .onStatus(HttpStatusCode::isError, clientResponse -> {
+                        throw new RuntimeException();
+                    })
+                    .bodyToMono(responseType)
+                    .block();
+        }catch (Exception e){
+            return null;
+        }
+    }
+
     public HttpStatusCode requestToDelCard(String url, String token) {
         return sendDeleteRequest(url,token);
     }
 
     private HttpStatusCode sendMoveRequest(String url,String token,String apiKey){
         return sendPostRequest(url,token,apiKey);
+    }
+
+    public List<UserCardResponse> getCardImagesRequest(String uri, String token, String apiKey) {
+
+        return sendGetResponse(
+                uri,
+                token,
+                new ParameterizedTypeReference<>() {
+                },
+                apiKey
+        );
+    }
+
+    public ProfileImageDtoResponse requestToGetProfileImage(String uri, String token, String apiKey){
+        return sendGetResponse(uri,token,apiKey, ProfileImageDtoResponse.class);
     }
 
 }

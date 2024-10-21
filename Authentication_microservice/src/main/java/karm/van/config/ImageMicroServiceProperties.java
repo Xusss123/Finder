@@ -20,5 +20,6 @@ public class ImageMicroServiceProperties {
         private String moveImage;
         private String delImagesFromMinio;
         private String moveImageToProfile;
+        private String profileImage;
     }
 }

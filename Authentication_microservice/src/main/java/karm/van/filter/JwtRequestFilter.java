@@ -59,6 +59,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
                     // Устанавливаем информацию об аутентификации в SecurityContext
                     SecurityContextHolder.getContext().setAuthentication(authToken);
+                    request.setAttribute("jwtToken", jwtToken);
                 }
             } catch (UsernameNotFoundException e) {
                 logger.error("Пользователь не найден: " + username);
