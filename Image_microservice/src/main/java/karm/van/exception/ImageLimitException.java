@@ -10,7 +10,4 @@ public class ImageLimitException extends Exception{
         super(message);
     }
 
-    public ImageLimitException(){
-        super();
-    }
 }

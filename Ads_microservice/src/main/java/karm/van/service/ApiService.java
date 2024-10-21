@@ -79,29 +79,37 @@ public class ApiService {
     }
 
 
-    private <T> T sendGetResponse(String uri, String token, ParameterizedTypeReference<T> responseType){
+    private <T> T sendGetResponse(String uri, String token, ParameterizedTypeReference<T> responseType, String apiKey){
         return webClient
                 .get()
                 .uri(uri)
-                .headers(httpHeaders -> httpHeaders.setBearerAuth(token))
+                .headers(httpHeaders -> {
+                    httpHeaders.set("x-api-key",apiKey);
+                    httpHeaders.setBearerAuth(token);
+                })
                 .retrieve()
                 .bodyToMono(responseType)
                 .block();
     }
 
-    private <T> T sendGetResponse(String uri, String token, Class<T> responseType){
+    private <T> T sendGetResponse(String uri, String token, Class<T> responseType, String apiKey) {
         try {
             return webClient
                     .get()
                     .uri(uri)
-                    .headers(httpHeaders -> httpHeaders.setBearerAuth(token))
+                    .headers(httpHeaders -> {
+                        httpHeaders.setBearerAuth(token);
+                        if (apiKey != null && !apiKey.trim().isEmpty()) {
+                            httpHeaders.set("x-api-key", apiKey);
+                        }
+                    })
                     .retrieve()
                     .onStatus(HttpStatusCode::isError, clientResponse -> {
                         throw new RuntimeException();
                     })
                     .bodyToMono(responseType)
                     .block();
-        }catch (Exception e){
+        } catch (Exception e) {
             return null;
         }
     }
@@ -125,7 +133,7 @@ public class ApiService {
     }
 
 
-    public List<ImageDto> getCardImagesRequest(List<Long> imagesId, String url, String token) {
+    public List<ImageDto> getCardImagesRequest(List<Long> imagesId, String url, String token, String apikey) {
 
         String uri = UriComponentsBuilder.fromHttpUrl(url)
                 .queryParam("imagesId", imagesId)
@@ -135,27 +143,28 @@ public class ApiService {
                 uri,
                 token,
                 new ParameterizedTypeReference<>() {
-                }
+                },
+                apikey
         );
     }
 
-    private UserDtoRequest fetchUserData(String uri, String token) {
-        return sendGetResponse(uri,token, UserDtoRequest.class);
+    private UserDtoRequest fetchUserData(String uri, String token, String apiKey) {
+        return sendGetResponse(uri,token, UserDtoRequest.class,apiKey);
     }
 
-    public UserDtoRequest getUserByToken(String url, String token) {
-        return fetchUserData(url, token);
+    public UserDtoRequest getUserByToken(String url, String token, String apiKey) {
+        return fetchUserData(url, token, apiKey);
     }
 
-    public UserDtoRequest getUserById(String url, String token, Long userId) {
+    public UserDtoRequest getUserById(String url, String token, Long userId, String apiKey) {
         String uri = UriComponentsBuilder.fromHttpUrl(url)
                 .queryParam("userId", userId)
                 .toUriString();
-        return fetchUserData(uri, token);
+        return fetchUserData(uri, token, apiKey);
     }
 
     public Boolean validateToken(String token, String url) {
-        Map<?, ?> responseMap = sendGetResponse(url, token, Map.class);
+        Map<?, ?> responseMap = sendGetResponse(url, token, Map.class,null);
         return responseMap != null && responseMap.containsKey("valid") && (Boolean) responseMap.get("valid");
     }
 

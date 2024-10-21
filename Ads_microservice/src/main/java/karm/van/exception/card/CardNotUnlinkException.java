@@ -10,7 +10,4 @@ public class CardNotUnlinkException extends Exception{
         super(message);
     }
 
-    public CardNotUnlinkException(){
-        super();
-    }
 }

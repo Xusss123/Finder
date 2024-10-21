@@ -2,12 +2,14 @@ package karm.van.service;
 
 import karm.van.config.AuthenticationMicroServiceProperties;
 import karm.van.dto.ImageDto;
+import karm.van.dto.ImageDtoResponse;
 import karm.van.exception.*;
 import karm.van.model.ImageModel;
 import karm.van.repository.ImageRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -249,5 +251,14 @@ public class ImageService {
             delImageAsync(minioProfileImageBucket,fileName);
             throw new ImageNotSavedException("There is a problem with image processing");
         }
+    }
+
+    public ImageDtoResponse getImage(Long imageId, String authorization) throws TokenNotExistException, ImageNotFoundException {
+        checkToken(authorization.substring(7));
+
+        return imageRepo.findById(imageId)
+                .map(image->new ImageDtoResponse(image.getImageName(),image.getImageBucket()))
+                .orElseThrow(()->new ImageNotFoundException(("Image with this id doesn't exist")));
+
     }
 }

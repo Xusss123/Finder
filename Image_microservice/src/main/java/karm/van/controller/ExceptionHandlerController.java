@@ -25,11 +25,6 @@ public class ExceptionHandlerController {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
 
-    @ExceptionHandler(UsernameNotFoundException.class)
-    public ResponseEntity<String> usernameNotFoundException(UsernameNotFoundException ex){
-        return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
-    }
-
     @ExceptionHandler(ImageNotFoundException.class)
     public ResponseEntity<String> imageNotFoundException(ImageNotFoundException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND);

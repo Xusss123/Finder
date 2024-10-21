@@ -10,7 +10,4 @@ public class ImageNotFoundException extends Exception{
         super(message);
     }
 
-    public ImageNotFoundException(){
-        super();
-    }
 }

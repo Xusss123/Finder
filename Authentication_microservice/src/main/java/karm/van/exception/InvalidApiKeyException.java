@@ -10,7 +10,4 @@ public class InvalidApiKeyException extends Exception{
         super(message);
     }
 
-    public InvalidApiKeyException(){
-        super();
-    }
 }

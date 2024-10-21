@@ -1,6 +1,7 @@
 package karm.van.controller;
 
 import karm.van.dto.ImageDto;
+import karm.van.dto.ImageDtoResponse;
 import karm.van.exception.*;
 import karm.van.service.ImageService;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +32,31 @@ public class ImageController {
     private String minioTrashBucket;
 
     @GetMapping("/get")
-    public List<ImageDto> getCardImages(@RequestParam List<Long> imagesId, @RequestHeader("Authorization") String authorization) throws TokenNotExistException {
+    public List<ImageDto> getCardImages(@RequestParam List<Long> imagesId,
+                                        @RequestHeader("x-api-key") String key,
+                                        @RequestHeader("Authorization") String authorization) throws TokenNotExistException, InvalidApiKeyException {
+        if(imageService.checkNoneEqualsApiKey(key)){
+            throw new InvalidApiKeyException("Invalid api-key");
+        }
         return imageService.getImages(imagesId,authorization);
+    }
+
+    @GetMapping("/get-one/{imageId}")
+    public ResponseEntity<?> getImage(@PathVariable Long imageId,
+                                      @RequestHeader("Authorization") String authorization,
+                                      @RequestHeader("x-api-key") String key){
+        try {
+            if(imageService.checkNoneEqualsApiKey(key)){
+                throw new InvalidApiKeyException("Invalid api-key");
+            }
+
+            return ResponseEntity.ok(imageService.getImage(imageId,authorization));
+        } catch (ImageNotFoundException | TokenNotExistException | InvalidApiKeyException e) {
+            log.error("Error deleting image: {}", e.getMessage(), e);
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
     }
 
     @DeleteMapping("/del/{imageId}")

@@ -9,8 +9,4 @@ public class CardNotDeletedException extends Exception{
     public CardNotDeletedException(String message){
         super(message);
     }
-
-    public CardNotDeletedException(){
-        super();
-    }
 }

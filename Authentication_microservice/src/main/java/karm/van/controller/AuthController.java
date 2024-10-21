@@ -1,5 +1,7 @@
 package karm.van.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import jakarta.servlet.http.HttpServletRequest;
 import karm.van.dto.request.AuthRequest;
 import karm.van.dto.request.UserDtoRequest;
 import karm.van.dto.response.AuthResponse;
@@ -14,10 +16,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -32,41 +37,79 @@ public class AuthController {
     private final JwtService jwtService;
 
     @GetMapping("/validate")
-    public ResponseEntity<?> validateToken(@RequestHeader("Authorization") String authorizationHeader){
-        String token = authorizationHeader.substring(7);
-        try {
-            return ResponseEntity.ok(Map.of("valid",
-                    jwtService.validateAccessToken(token, jwtService.getUserDetailsFromToken(token))
-            ));
-        }catch (Exception e){
-            log.error("message: "+e.getMessage()+" class: "+e.getClass());
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "invalid token"));
+    public ResponseEntity<?> validateToken(){
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication != null && authentication.isAuthenticated()) {
+            return ResponseEntity.ok(Map.of("valid", true));
+        } else {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Invalid token"));
         }
     }
 
     @GetMapping("/get-user")
-    public ResponseEntity<?> getUserDto(@RequestHeader("Authorization") String authorizationHeader,
-                                            @RequestParam(name = "userId",required = false) Optional<Long> userId){
+    public ResponseEntity<?> getUserDto(@RequestParam(name = "userId",required = false) Optional<Long> userId,
+                                        @RequestHeader(name = "x-api-key") String apiKey){
         try {
-            return ResponseEntity.ok(myUserService.getUser(authorizationHeader,userId));
-        }catch (UsernameNotFoundException e){
+            if(myUserService.checkApiKeyNotEquals(apiKey)){
+                throw new InvalidApiKeyException("Access denied");
+            }
+            return ResponseEntity.ok(myUserService.getUser(SecurityContextHolder.getContext().getAuthentication(),userId));
+        }catch (UsernameNotFoundException | InvalidApiKeyException e){
             return ResponseEntity.badRequest().body(e.getMessage());
         }catch (BadCredentialsException e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
 
-    //TODO добавить метод для получение полной информации о пользователе (данные о нем, все его объявления, где хранится изображение профиля)
+    @GetMapping("/profile/{userName}")
+    public ResponseEntity<?> getFullUserData(HttpServletRequest request,
+                                             @PathVariable String userName) {
+        try {
+            return ResponseEntity.ok(myUserService.getFullUserData(request,userName));
+        }catch (CardsNotGetedException | ImageNotGetedException | JsonProcessingException e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("An error occurred on the server side");
+        }
+    }
+
+    @PatchMapping("/user/patch")
+    public ResponseEntity<?> patchUser(@RequestParam(required = false) Optional<String> name,
+                                       @RequestParam(required = false) Optional<String> email,
+                                       @RequestParam(required = false) Optional<String> firstName,
+                                       @RequestParam(required = false) Optional<String> lastName,
+                                       @RequestParam(required = false) Optional<String> description,
+                                       @RequestParam(required = false) Optional<String> country,
+                                       @RequestParam(required = false) Optional<String> roleInCommand,
+                                       @RequestParam(required = false) Optional<String> skills){
+
+
+        try {
+            myUserService.patchUser(
+                    SecurityContextHolder.getContext().getAuthentication(),
+                    name,
+                    email,
+                    firstName,
+                    lastName,
+                    description,
+                    country,
+                    roleInCommand,
+                    skills
+            );
+            return ResponseEntity.ok("User successfully changed");
+        }catch (IllegalArgumentException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     @PostMapping("/user/addCard/{cardId}")
-    public ResponseEntity<?> addCardToUser(@RequestHeader("Authorization") String authorizationHeader,
-                                           @PathVariable("cardId") Long cardId,
+    public ResponseEntity<?> addCardToUser(@PathVariable("cardId") Long cardId,
                                            @RequestHeader("x-api-key") String apiKey){
         try {
             if(myUserService.checkApiKeyNotEquals(apiKey)){
                 throw new InvalidApiKeyException("Access denied");
             }
-            myUserService.addCardToUser(authorizationHeader,cardId);
+            myUserService.addCardToUser(SecurityContextHolder.getContext().getAuthentication(),cardId);
             return ResponseEntity.ok("Card added successfully");
         }catch (UsernameNotFoundException | InvalidApiKeyException e){
             return ResponseEntity.badRequest().body(Map.of("error",e.getMessage()));
@@ -119,14 +162,13 @@ public class AuthController {
     }
 
     @PatchMapping("/user/addProfileImage/{profileImageId}")
-    public ResponseEntity<?> addProfileImage(@RequestHeader("Authorization") String authorizationHeader,
-                                             @PathVariable("profileImageId") Long profileImageId,
+    public ResponseEntity<?> addProfileImage(@PathVariable("profileImageId") Long profileImageId,
                                              @RequestHeader("x-api-key") String apiKey){
         try {
             if(myUserService.checkApiKeyNotEquals(apiKey)){
                 throw new InvalidApiKeyException("Access denied");
             }
-            return ResponseEntity.ok(myUserService.addProfileImage(authorizationHeader,profileImageId));
+            return ResponseEntity.ok(myUserService.addProfileImage(SecurityContextHolder.getContext().getAuthentication(),profileImageId));
         }catch (UsernameNotFoundException | InvalidApiKeyException e){
             return ResponseEntity.badRequest().body(Map.of("error",e.getMessage()));
         }catch (BadCredentialsException e){
@@ -135,14 +177,13 @@ public class AuthController {
     }
 
     @PostMapping("/user/addComment/{commentId}")
-    public ResponseEntity<?> addCommentToUser(@RequestHeader("Authorization") String authorizationHeader,
-                                           @PathVariable("commentId") Long commentId,
-                                           @RequestHeader("x-api-key") String apiKey){
+    public ResponseEntity<?> addCommentToUser(@PathVariable("commentId") Long commentId,
+                                              @RequestHeader("x-api-key") String apiKey){
         try {
             if(myUserService.checkApiKeyNotEquals(apiKey)){
                 throw new InvalidApiKeyException("Access denied");
             }
-            myUserService.addCommentToUser(authorizationHeader,commentId);
+            myUserService.addCommentToUser(SecurityContextHolder.getContext().getAuthentication(),commentId);
             return ResponseEntity.ok("Comment added successfully");
         }catch (UsernameNotFoundException | InvalidApiKeyException e){
             return ResponseEntity.badRequest().body(Map.of("error",e.getMessage()));
@@ -152,17 +193,16 @@ public class AuthController {
     }
 
     @DeleteMapping("/user/comment/del/{commentId}/{authorId}")
-    public ResponseEntity<?> unlinkCommentAndUser(@RequestHeader("Authorization") String authorizationHeader,
-                                              @PathVariable("commentId") Long commentId,
-                                              @PathVariable("authorId") Long authorId,
-                                              @RequestHeader("x-api-key") String apiKey){
+    public ResponseEntity<?> unlinkCommentAndUser(@PathVariable("commentId") Long commentId,
+                                                  @PathVariable("authorId") Long authorId,
+                                                  @RequestHeader("x-api-key") String apiKey){
         try {
             if(myUserService.checkApiKeyNotEquals(apiKey)){
                 throw new InvalidApiKeyException("Access denied");
             }
-            myUserService.unlinkCommentAndUser(authorizationHeader,commentId,authorId);
+            myUserService.unlinkCommentAndUser(commentId,authorId);
             return ResponseEntity.ok("Comment deleted successfully");
-        }catch (UsernameNotFoundException | InvalidApiKeyException | NotEnoughPermissionsException e){
+        }catch (UsernameNotFoundException | InvalidApiKeyException e){
             return ResponseEntity.badRequest().body(Map.of("error",e.getMessage()));
         }catch (BadCredentialsException e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
@@ -170,9 +210,10 @@ public class AuthController {
     }
 
     @DeleteMapping("/user/del")
-    public ResponseEntity<?> delUser(@RequestHeader("Authorization") String authorizationHeader) throws BadCredentialsException{
+    public ResponseEntity<?> delUser(HttpServletRequest request) throws BadCredentialsException{
+
         try {
-            myUserService.delUser(authorizationHeader);
+            myUserService.delUser(SecurityContextHolder.getContext().getAuthentication(),request);
             return ResponseEntity.ok("User deleted successfully");
         } catch (BadCredentialsException e){
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -183,17 +224,16 @@ public class AuthController {
     }
 
     @DeleteMapping("/user/card/del/{cardId}")
-    public ResponseEntity<?> delUserCard(@RequestHeader("Authorization") String authorizationHeader,
-                                         @PathVariable("cardId") Long cardId,
+    public ResponseEntity<?> delUserCard(@PathVariable("cardId") Long cardId,
                                          @RequestHeader("x-api-key") String apiKey){
         try {
             if(myUserService.checkApiKeyNotEquals(apiKey)){
                 throw new InvalidApiKeyException("Access denied");
             }
 
-            myUserService.delUserCard(authorizationHeader,cardId);
+            myUserService.delUserCard(SecurityContextHolder.getContext().getAuthentication(),cardId);
             return ResponseEntity.ok("Card deleted successfully");
-        } catch (NotEnoughPermissionsException | InvalidApiKeyException e){
+        } catch (InvalidApiKeyException e){
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (BadCredentialsException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));

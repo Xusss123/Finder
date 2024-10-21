@@ -42,6 +42,18 @@ public class CardController {
         return cardService.getAllCards(pageNumber,limit,authorization);
     }
 
+    @GetMapping("getUserCards/{userId}")
+    public List<CardDto> getUserCards(@RequestHeader("Authorization") String authorization,
+                                      @RequestHeader("x-api-key") String apiKey,
+                                      @PathVariable("userId") Long userId) throws TokenNotExistException {
+        try {
+            return cardService.getAllUserCards(authorization,apiKey,userId);
+        } catch (TokenNotExistException e) {
+            log.error("class: "+e.getClass()+", message: "+e.getMessage());
+            throw e;
+        }
+    }
+
     @PostMapping(value = "add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public void addCard(@RequestPart("cardDto") CardDto cardDto, @RequestPart("files") List<MultipartFile> files, @RequestHeader("Authorization") String authorization) throws ImageNotSavedException, CardNotSavedException, ImageLimitException, TokenNotExistException, UsernameNotFoundException {
         try {

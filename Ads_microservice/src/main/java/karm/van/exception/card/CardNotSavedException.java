@@ -9,7 +9,4 @@ public class CardNotSavedException extends Exception{
         super(message);
     }
 
-    public CardNotSavedException(){
-
-    }
 }

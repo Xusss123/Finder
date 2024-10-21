@@ -10,7 +10,4 @@ public class CardNotFoundException extends Exception{
         super(message);
     }
 
-    public CardNotFoundException(){
-        super();
-    }
 }

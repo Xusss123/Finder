@@ -9,8 +9,4 @@ public class ImageNotSavedException extends Exception{
     public ImageNotSavedException(String message){
         super(message);
     }
-
-    public ImageNotSavedException(){
-        super();
-    }
 }
