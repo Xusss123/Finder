@@ -38,7 +38,9 @@ public class CardController {
     }
 
     @GetMapping("getAll/{pageNumber}/{limit}")
-    public CardPageResponseDto getAllCards(@PathVariable int pageNumber, @PathVariable int limit, @RequestHeader("Authorization") String authorization) throws TokenNotExistException, SerializationException {
+    public CardPageResponseDto getAllCards(@PathVariable int pageNumber,
+                                           @PathVariable int limit,
+                                           @RequestHeader("Authorization") String authorization) throws TokenNotExistException, SerializationException {
         return cardService.getAllCards(pageNumber,limit,authorization);
     }
 
@@ -55,7 +57,9 @@ public class CardController {
     }
 
     @PostMapping(value = "add", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public void addCard(@RequestPart("cardDto") CardDto cardDto, @RequestPart("files") List<MultipartFile> files, @RequestHeader("Authorization") String authorization) throws ImageNotSavedException, CardNotSavedException, ImageLimitException, TokenNotExistException, UsernameNotFoundException {
+    public void addCard(@RequestPart("cardDto") CardDto cardDto,
+                        @RequestPart("files") List<MultipartFile> files,
+                        @RequestHeader("Authorization") String authorization) throws ImageNotSavedException, CardNotSavedException, ImageLimitException, TokenNotExistException, UsernameNotFoundException {
         try {
             cardService.addCard(files, cardDto, authorization);
         } catch (ImageNotSavedException | CardNotSavedException | ImageLimitException | TokenNotExistException |
