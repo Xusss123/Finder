@@ -353,36 +353,20 @@ Responsible for comment management
     - `200 OK`: Returns card comments:
       ```json
       [
-          {
-              "id": 29,
-              "text": "СУПЕР",
-              "createdAt": "2024-10-13T14:28:15.921464",
-              "userId": 8
-          },
-          {
-              "id": 30,
-              "text": "СУПЕР",
-              "createdAt": "2024-10-13T14:28:16.843091",
-              "userId": 8
-          },
-          {
-              "id": 31,
-              "text": "СУПЕР",
-              "createdAt": "2024-10-13T14:28:17.5211",
-              "userId": 8
-          },
-          {
-              "id": 32,
-              "text": "СУПЕР",
-              "createdAt": "2024-10-13T14:28:18.143982",
-              "userId": 8
-          },
-          {
-              "id": 33,
-              "text": "СУПЕР",
-              "createdAt": "2024-10-13T14:28:18.719853",
-              "userId": 8
-          }
+	    {
+	        "text": "СУПЕР",
+	        "createdAt": "2024-10-21T12:41:03.097543",
+	        "commentAuthorDto": {
+	            "name": "johndoe123456"
+	        }
+	    },
+	    {
+	        "text": "СУПЕР",
+	        "createdAt": "2024-10-21T12:41:05.300401",
+	        "commentAuthorDto": {
+	            "name": "johndoe123456"
+	        }
+	    }
       ]
       ```
     - `400 Bad Request`: If the ad was not found or there was an unexpected error.
