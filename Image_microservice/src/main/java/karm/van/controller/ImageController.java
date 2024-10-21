@@ -1,7 +1,6 @@
 package karm.van.controller;
 
 import karm.van.dto.ImageDto;
-import karm.van.dto.ImageDtoResponse;
 import karm.van.exception.*;
 import karm.van.service.ImageService;
 import lombok.RequiredArgsConstructor;
