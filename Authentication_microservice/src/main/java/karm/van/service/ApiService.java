@@ -15,7 +15,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
 @Component
@@ -57,35 +56,17 @@ public class ApiService {
         ).getStatusCode();
     }
 
-    private String getIds(List<Long> imagesId){
-        return imagesId.stream()
-                .map(String::valueOf)
-                .collect(Collectors.joining(","));
-    }
-
-    public void moveImagesToProfileImagePackage(String url, String token, String apiKey) {
-        sendMoveRequest(url,token,apiKey);
-    }
-
-    public HttpStatusCode moveImagesToTrashPackage(String url, List<Long> imagesId, String token, String apiKey) {
-        String ids = getIds(imagesId);
+    public HttpStatusCode moveProfileImage(String url, String token, String apiKey, Boolean toTrash) {
 
         String fullUrl = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("ids", ids)
-                .queryParam("toTrash",true)
+                .queryParam("toTrash",toTrash)
                 .toUriString();
 
         return sendMoveRequest(fullUrl,token,apiKey);
     }
 
-    public HttpStatusCode sendDeleteImagesFromMinioRequest(String url, List<Long> imagesId, String token, String apiKey) {
-        String ids = getIds(imagesId);
-
-        String fullUrl = UriComponentsBuilder.fromHttpUrl(url)
-                .queryParam("ids", ids)
-                .toUriString();
-
-        return sendDeleteRequest(fullUrl,token,apiKey);
+    public HttpStatusCode deleteImageFromMinioRequest(String url, String token, String apiKey) {
+        return sendDeleteRequest(url,token,apiKey);
     }
 
     private HttpStatusCode sendDeleteRequest(String url, String token, String apiKey) {

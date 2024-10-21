@@ -67,7 +67,7 @@ public class ImageController {
             if(imageService.checkNoneEqualsApiKey(key)){
                 throw new InvalidApiKeyException("Invalid api-key");
             }
-            imageService.deleteImageFromCard(imageId,authorization,minioImageBucket);
+            imageService.deleteImage(imageId,authorization);
             return ResponseEntity.ok("Success delete");
         } catch (ImageNotFoundException | TokenNotExistException | InvalidApiKeyException e) {
             log.error("Error deleting image: {}", e.getMessage(), e);
@@ -135,10 +135,11 @@ public class ImageController {
         }
     }
 
-    @PostMapping(value = "/move-to-profile/{imageId}")
-    public ResponseEntity<?> moveImageToProfileBucket(@PathVariable Long imageId,
-                                                      @RequestHeader("Authorization") String authorization,
-                                                      @RequestHeader("x-api-key") String key) {
+    @PostMapping(value = "/profile/move/{imageId}")
+    public ResponseEntity<?> moveProfileImagesBetweenBuckets(@PathVariable Long imageId,
+                                                             @RequestHeader("Authorization") String authorization,
+                                                             @RequestParam(value = "toTrash",required = false,defaultValue = "false") Boolean toTrash,
+                                                             @RequestHeader("x-api-key") String key) {
 
 
 
@@ -146,8 +147,9 @@ public class ImageController {
             if(imageService.checkNoneEqualsApiKey(key)){
                 throw new InvalidApiKeyException("Invalid api-key");
             }
+            String bucketToMove = toTrash? minioTrashBucket:minioProfileImageBucket;
 
-            imageService.moveImageBetweenBuckets(imageId,authorization,minioProfileImageBucket);
+            imageService.moveImageBetweenBuckets(imageId,authorization,bucketToMove);
             return ResponseEntity.ok("ok");
         } catch (TokenNotExistException | InvalidApiKeyException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
@@ -168,7 +170,7 @@ public class ImageController {
                 throw new InvalidApiKeyException("Invalid api-key");
             }
 
-            imageService.deleteAllImagesFromCard(ids,authorization);
+            imageService.deleteAllImages(ids,authorization);
             return ResponseEntity.ok("Images deleted");
         } catch (TokenNotExistException | InvalidApiKeyException e){
             return ResponseEntity.badRequest().body(e.getMessage());

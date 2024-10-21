@@ -231,15 +231,16 @@ public class MyUserService {
         }
     }
 
-    private void moveImagesToTrashBucket(List<Long> imagesId, String token) throws ImageNotMovedException {
+    private void moveProfileImageToTrashBucket(Long imageId, String token) throws ImageNotMovedException {
         String imageUrl = apiService.buildUrl(
                 imageProperties.getPrefix(),
                 imageProperties.getHost(),
                 imageProperties.getPort(),
-                imageProperties.getEndpoints().getMoveImage()
+                imageProperties.getEndpoints().getMoveProfileImage(),
+                imageId
         );
         try {
-            HttpStatusCode httpStatusCode = apiService.moveImagesToTrashPackage(imageUrl, imagesId, token, apiKey);
+            HttpStatusCode httpStatusCode = apiService.moveProfileImage(imageUrl, token, apiKey,true);
             if (httpStatusCode != HttpStatus.OK) {
                 throw new ImageNotMovedException();
             }
@@ -249,16 +250,17 @@ public class MyUserService {
         }
     }
 
-    private void requestToDeleteImagesFromMinio(List<Long> imageIds,String token) throws ImageNotDeletedException {
+    private void deleteImageFromMinio(Long imageId,String token) throws ImageNotDeletedException {
         String url = apiService.buildUrl(
                 imageProperties.getPrefix(),
                 imageProperties.getHost(),
                 imageProperties.getPort(),
-                imageProperties.getEndpoints().getDelImagesFromMinio()
+                imageProperties.getEndpoints().getDelImageFromMinio(),
+                imageId
         );
 
         try {
-            HttpStatusCode httpStatusCode = apiService.sendDeleteImagesFromMinioRequest(url, imageIds, token, apiKey);
+            HttpStatusCode httpStatusCode = apiService.deleteImageFromMinioRequest(url, token, apiKey);
             if (httpStatusCode != HttpStatus.OK) {
                 throw new ImageNotDeletedException();
             }
@@ -274,12 +276,12 @@ public class MyUserService {
                 imageProperties.getPrefix(),
                 imageProperties.getHost(),
                 imageProperties.getPort(),
-                imageProperties.getEndpoints().getMoveImageToProfile(),
+                imageProperties.getEndpoints().getMoveProfileImage(),
                 imageId
                 );
 
 
-        apiService.moveImagesToProfileImagePackage(imageUrl, token, apiKey);
+        apiService.moveProfileImage(imageUrl, token, apiKey,false);
     }
 
     private void deleteAllUserCards(MyUser user, String token) throws CardNotDeletedException {
@@ -304,11 +306,16 @@ public class MyUserService {
         MyUser user = userRepo.findByName(authentication.getName())
                 .orElseThrow(()->new UsernameNotFoundException("User with this name doesn't exist"));
         try {
-            moveImagesToTrashBucket(List.of(user.getProfileImage()),token);
+            Long userProfileImageId = user.getProfileImage();
+            if (userProfileImageId>0){
+                moveProfileImageToTrashBucket(userProfileImageId,token);
+            }
             if (!user.getCards().isEmpty()){
                 deleteAllUserCards(user,token);
             }
-            requestToDeleteImagesFromMinio(List.of(user.getProfileImage()),token);
+            if (userProfileImageId>0){
+                deleteImageFromMinio(userProfileImageId,token);
+            }
             userRepo.delete(user);
             redis.del(redisKey);
         }catch (ImageNotMovedException | ImageNotDeletedException e){

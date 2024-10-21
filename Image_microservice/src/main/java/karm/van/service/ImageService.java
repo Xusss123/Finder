@@ -157,7 +157,7 @@ public class ImageService {
 
 
     @Transactional
-    public void deleteAllImagesFromCard(List<Long> imagesId,String authorization) throws TokenNotExistException {
+    public void deleteAllImages(List<Long> imagesId,String authorization) throws TokenNotExistException {
         checkToken(authorization.substring(7));
         List<ImageModel> images = imageRepo.findAllById(imagesId);
         images.parallelStream().forEach(imageModel -> {
@@ -172,14 +172,14 @@ public class ImageService {
     }
 
     @Transactional
-    public void deleteImageFromCard(Long imageId, String authorization, String bucketName) throws ImageNotFoundException, ImageNotDeletedException, TokenNotExistException {
+    public void deleteImage(Long imageId, String authorization) throws ImageNotFoundException, ImageNotDeletedException, TokenNotExistException {
         String token = authorization.substring(7);
         checkToken(token);
         ImageModel imageModel = imageRepo.findById(imageId)
                 .orElseThrow(() -> new ImageNotFoundException("Image with this id doesn't exist"));
 
         try {
-            minioService.delObject(bucketName, imageModel.getImageName());
+            minioService.delObject(imageModel.getImageBucket(), imageModel.getImageName());
             imageRepo.delete(imageModel);
         } catch (Exception e){
             log.error("class: "+e.getClass()+" message: "+e.getMessage());
