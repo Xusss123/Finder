@@ -1,4 +1,4 @@
-package karm.van.dto;
+package karm.van.dto.user;
 
 import java.util.List;
 

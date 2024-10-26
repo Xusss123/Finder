@@ -1,8 +1,8 @@
 package karm.van.service;
 
 import jakarta.annotation.PostConstruct;
-import karm.van.dto.ImageDto;
-import karm.van.dto.UserDtoRequest;
+import karm.van.dto.image.ImageDto;
+import karm.van.dto.user.UserDtoRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;

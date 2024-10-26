@@ -18,5 +18,6 @@ public class AdsMicroServiceProperties {
     public static class Endpoints{
         private String delCard;
         private String getUserCards;
+        private String delAllComplaintByUserId;
     }
 }

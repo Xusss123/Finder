@@ -23,7 +23,6 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/comment")
 public class CommentController {
     private final CommentService commentService;
-
     @PostMapping("/add/{cardId}")
     public ResponseEntity<?> addComment(@PathVariable Long cardId,
                                         @RequestPart("commentDto") CommentDto commentDto,
@@ -41,6 +40,23 @@ public class CommentController {
         }
     }
 
+    @PostMapping("/reply/{commentId}")
+    public ResponseEntity<?> replyComment(@PathVariable Long commentId,
+                                        @RequestPart("commentDto") CommentDto commentDto,
+                                        @RequestHeader("Authorization") String authorization) {
+        try {
+            commentService.replyComment(commentId, commentDto, authorization);
+            return ResponseEntity.ok("Comment added successfully");
+        } catch (TokenNotExistException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (InvalidDataException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (Exception e) {
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            return ResponseEntity.badRequest().body("An unknown error occurred while adding comment");
+        }
+    }
+
     @GetMapping("/get/{cardId}")
     public ResponseEntity<?> getComments(@PathVariable Long cardId,
                                          @RequestParam(required = false,defaultValue = "0") int page,
@@ -48,6 +64,24 @@ public class CommentController {
                                          @RequestHeader("Authorization") String authorization) {
         try {
             return ResponseEntity.ok(commentService.getComments(cardId,limit,page,authorization));
+        } catch (TokenNotExistException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
+        } catch (CardNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+        } catch (SerializationException e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body("An unknown error occurred while deleting one comment: "+e.getMessage()+" - "+e.getClass());
+        }
+    }
+
+    @GetMapping("/reply/get/{commentId}")
+    public ResponseEntity<?> getReplyComments(@PathVariable Long commentId,
+                                         @RequestParam(required = false,defaultValue = "0") int page,
+                                         @RequestParam(required = false,defaultValue = "10") int limit,
+                                         @RequestHeader("Authorization") String authorization) {
+        try {
+            return ResponseEntity.ok(commentService.getReplyComments(commentId,limit,page,authorization));
         } catch (TokenNotExistException e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         } catch (CardNotFoundException e) {

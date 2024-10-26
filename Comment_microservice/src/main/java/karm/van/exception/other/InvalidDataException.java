@@ -10,8 +10,5 @@ public class InvalidDataException extends Exception{
         super(message);
     }
 
-    public InvalidDataException(){
-        super();
-    }
 
 }

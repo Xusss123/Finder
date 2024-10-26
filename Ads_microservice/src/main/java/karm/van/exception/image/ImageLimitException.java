@@ -9,8 +9,4 @@ public class ImageLimitException extends Exception{
     public ImageLimitException(String message){
         super(message);
     }
-
-    public ImageLimitException(){
-        super();
-    }
 }

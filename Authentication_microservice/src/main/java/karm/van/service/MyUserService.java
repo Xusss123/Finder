@@ -1,6 +1,7 @@
 package karm.van.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import redis.clients.jedis.JedisPooled;
 
+import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -299,8 +301,27 @@ public class MyUserService {
         }
     }
 
+    private void deleteAllComplaintByUserId(Long userId,String token) throws ComplaintsNotDeletedException {
+        String uri = apiService.buildUrl(
+                adsProperties.getPrefix(),
+                adsProperties.getHost(),
+                adsProperties.getPort(),
+                adsProperties.getEndpoints().getDelAllComplaintByUserId(),
+                userId
+        );
+        try {
+            HttpStatusCode httpStatusCode = apiService.requestToDeleteAllComplaintByUserId(uri, token, apiKey);
+            if (httpStatusCode != HttpStatus.OK) {
+                throw new ImageNotMovedException();
+            }
+        }catch (Exception e){
+            log.error("class: "+e.getClass()+" message: "+e.getMessage());
+            throw new ComplaintsNotDeletedException("Due to an error on the server, the complaints were not deleted");
+        }
+    }
+
     @Transactional
-    public void delUser(Authentication authentication, HttpServletRequest request) throws ImageNotMovedException, CardNotDeletedException, ImageNotDeletedException {
+    public void delUser(Authentication authentication, HttpServletRequest request) throws ImageNotMovedException, CardNotDeletedException, ImageNotDeletedException, ComplaintsNotDeletedException {
         String token = (String) request.getAttribute("jwtToken");
         String redisKey = "user_"+authentication.getName();
         MyUser user = userRepo.findByName(authentication.getName())
@@ -310,6 +331,7 @@ public class MyUserService {
             if (userProfileImageId>0){
                 moveProfileImageToTrashBucket(userProfileImageId,token);
             }
+            deleteAllComplaintByUserId(user.getId(),token);
             if (!user.getCards().isEmpty()){
                 deleteAllUserCards(user,token);
             }
@@ -321,7 +343,7 @@ public class MyUserService {
         }catch (ImageNotMovedException | ImageNotDeletedException e){
             log.error("class: "+e.getClass()+" message: "+e.getMessage());
             throw e;
-        }catch (CardNotDeletedException e){
+        }catch (CardNotDeletedException |ComplaintsNotDeletedException e){
             rollBackImages(user.getProfileImage(),token);
             throw e;
         }
@@ -456,4 +478,106 @@ public class MyUserService {
         return pat.matcher(email).matches();
     }
 
+    @Transactional
+    public String toggleFavoriteCard(Authentication authentication, Long cardId) {
+        String currentUserName = authentication.getName();
+
+        MyUser user = userRepo.findByName(currentUserName)
+                .orElseThrow(() -> new UsernameNotFoundException("User with this name doesn't exist"));
+
+        String redisKey = "favorite-cards:"+currentUserName;
+
+        List<Long> cards = user.getFavoriteCards();
+        boolean cardRemove = false;
+
+        if (cards.contains(cardId)){
+            cards.remove(cardId);
+            cardRemove = true;
+        }else {
+            cards.add(cardId);
+        }
+
+        if (redis.exists(redisKey)){
+            redis.del(redisKey);
+        }
+
+        userRepo.save(user);
+
+        if (cardRemove){
+            return "Card successfully deleted";
+        }else {
+            return "Card successfully added";
+        }
+    }
+
+    public List<Long> getUserFavoriteCards(Authentication authentication) throws JsonProcessingException,UsernameNotFoundException {
+        String currentUserName = authentication.getName();
+        MyUser user = userRepo.findByName(currentUserName)
+                .orElseThrow(() -> new UsernameNotFoundException("User with this name doesn't exist"));
+        String redisKey = "favorite-cards:"+currentUserName;
+
+        if (redis.exists(redisKey)){
+            return objectMapper.readValue(redis.get(redisKey), new TypeReference<>(){});
+        }else {
+            List<Long> favoriteCardsList = user.getFavoriteCards();
+            String objectAsString = objectMapper.writeValueAsString(favoriteCardsList);
+            redis.set(redisKey,objectAsString);
+            redis.expire(redisKey,60);
+
+            return favoriteCardsList;
+        }
+    }
+
+    @Transactional
+    public void blockUser(String userName,
+                          int year,
+                          int month,
+                          int dayOfMonth,
+                          int hours,
+                          int minutes,
+                          int seconds,
+                          String reason) {
+
+        MyUser user = userRepo.findByName(userName)
+                .orElseThrow(() -> new UsernameNotFoundException("User with this name doesn't exist"));
+
+        user.setEnable(false);
+        user.setUnlockAt(LocalDateTime.of(year,month,dayOfMonth,hours,minutes,seconds));
+        user.setBlockReason(reason);
+        userRepo.save(user);
+    }
+
+    @Transactional
+    public String toggleUserAuthorities(String userName) throws AccessDeniedException {
+            MyUser user = userRepo.findByName(userName)
+                    .orElseThrow(() -> new UsernameNotFoundException("User with this name doesn't exist"));
+
+            List<String> roles = user.getRoles();
+            boolean roleRemove = false;
+
+            if (roles.contains("ROLE_ADMIN")){
+                roles.remove("ROLE_ADMIN");
+                roleRemove = true;
+            }else {
+                roles.add("ROLE_ADMIN");
+            }
+
+            userRepo.save(user);
+
+            if (roleRemove){
+                return "User downgraded";
+            }else {
+                return "User promoted to admin";
+            }
+    }
+
+    @Transactional
+    public void unblockUser(String userName) {
+        MyUser user = userRepo.findByName(userName)
+                .orElseThrow(() -> new UsernameNotFoundException("User with this name doesn't exist"));
+
+        user.setEnable(true);
+        user.setUnlockAt(LocalDateTime.now());
+        userRepo.save(user);
+    }
 }

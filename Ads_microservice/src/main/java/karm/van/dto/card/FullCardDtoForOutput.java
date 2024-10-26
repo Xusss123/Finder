@@ -1,4 +1,6 @@
-package karm.van.dto;
+package karm.van.dto.card;
+
+import karm.van.dto.image.ImageDto;
 
 import java.time.LocalDateTime;
 import java.util.List;

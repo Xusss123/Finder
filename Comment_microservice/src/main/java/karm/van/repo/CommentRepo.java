@@ -12,6 +12,8 @@ public interface CommentRepo extends JpaRepository<CommentModel,Long> {
     List<CommentModel> getCommentModelByCard_Id(Long id);
 
     Page<CommentModel> getCommentModelByCard_Id(Long id, Pageable pageable);
+    Page<CommentModel> getCommentModelsByParentComment_Id(Long parentCommentId, Pageable pageable);
+
 
     void deleteAllByCard_Id(Long id);
 

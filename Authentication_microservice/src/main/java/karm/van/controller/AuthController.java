@@ -2,21 +2,19 @@ package karm.van.controller;
 
 import karm.van.dto.request.AuthRequest;
 import karm.van.dto.request.UserDtoRequest;
-import karm.van.dto.response.AuthResponse;
 import karm.van.exception.UserAlreadyExist;
+import karm.van.service.AuthService;
 import karm.van.service.JwtService;
-import karm.van.service.MyUserDetailsService;
 import karm.van.service.MyUserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -26,10 +24,9 @@ import java.util.Map;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
-    private final AuthenticationManager authenticationManager;
-    private final MyUserDetailsService myUserDetailsService;
     private final MyUserService myUserService;
     private final JwtService jwtService;
+    private final AuthService authService;
 
     @GetMapping("/validate")
     public ResponseEntity<?> validateToken(){
@@ -55,24 +52,14 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthRequest authRequest) throws Exception {
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthRequest authRequest){
         try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(authRequest.username(), authRequest.password())
-            );
-        } catch (BadCredentialsException e) {
-            throw new Exception("Incorrect username or password", e);
+            return ResponseEntity.ok(authService.login(authRequest));
+        }catch (BadCredentialsException | UsernameNotFoundException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }catch (DisabledException e){
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
         }
-
-        // Загружаем UserDetails
-        UserDetails userDetails = myUserDetailsService.loadUserByUsername(authRequest.username());
-
-        // Генерируем Access Token и Refresh Token
-        String accessToken = jwtService.generateAccessToken(userDetails);
-        String refreshToken = jwtService.generateRefreshToken(userDetails);
-
-        // Возвращаем оба токена в ответе
-        return ResponseEntity.ok(new AuthResponse(accessToken, refreshToken));
     }
 
     @PostMapping(value = "/register")

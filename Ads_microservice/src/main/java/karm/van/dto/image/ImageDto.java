@@ -1,4 +1,4 @@
-package karm.van.dto;
+package karm.van.dto.image;
 
 public record ImageDto(Long id, String imageBucket, String imageName) {
 }

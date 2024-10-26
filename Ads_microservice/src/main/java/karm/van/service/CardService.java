@@ -3,10 +3,15 @@ package karm.van.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
+import karm.van.complaint.ComplaintType;
 import karm.van.config.properties.AuthenticationMicroServiceProperties;
 import karm.van.config.properties.CommentMicroServiceProperties;
 import karm.van.config.properties.ImageMicroServiceProperties;
-import karm.van.dto.*;
+import karm.van.dto.card.CardDto;
+import karm.van.dto.card.CardPageResponseDto;
+import karm.van.dto.card.FullCardDtoForOutput;
+import karm.van.dto.image.ImageDto;
+import karm.van.dto.user.UserDtoRequest;
 import karm.van.exception.card.CardNotFoundException;
 import karm.van.exception.card.CardNotSavedException;
 import karm.van.exception.card.CardNotUnlinkException;
@@ -21,6 +26,7 @@ import karm.van.exception.user.NotEnoughPermissionsException;
 import karm.van.exception.user.UsernameNotFoundException;
 import karm.van.model.CardModel;
 import karm.van.repository.CardRepo;
+import karm.van.repository.ComplaintRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,6 +57,7 @@ public class CardService {
     private final ImageMicroServiceProperties imageProperties;
     private final AuthenticationMicroServiceProperties authenticationProperties;
     private final ApiService apiService;
+    private final ComplaintRepo complaintRepo;
 
     @Value("${redis.host}")
     private String redisHost;
@@ -236,7 +243,7 @@ public class CardService {
         }
     }
 
-    public FullCardDtoForOutput getCard(Long id,String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException, UsernameNotFoundException {
+    public FullCardDtoForOutput getCard(Long id, String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException, UsernameNotFoundException {
         String token = authorization.substring(7);
         checkToken(token);
         String key = "card%d".formatted(id);
@@ -351,7 +358,7 @@ public class CardService {
         Long userId = user.id();
         List<String> userRoles = user.role();
 
-        if ( (!userId.equals(cardModel.getUserId())) && (userRoles.stream().noneMatch(role->role.equals("ADMIN"))) ){
+        if ( (!userId.equals(cardModel.getUserId())) && (userRoles.stream().noneMatch(role->role.equals("ROLE_ADMIN"))) ){
             throw new NotEnoughPermissionsException("You don't have permission to do this");
         }
     }
@@ -381,6 +388,8 @@ public class CardService {
                 .orElseThrow(() -> new CardNotFoundException("Card with this id doesn't exist"));
 
         checkUserPermissions(token,cardModel);
+
+        complaintRepo.deleteAllByTargetIdAndComplaintType(cardId, ComplaintType.CARD);
 
         List<Long> imagesId = cardModel.getImgIds();
 

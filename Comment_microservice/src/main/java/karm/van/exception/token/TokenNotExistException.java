@@ -10,7 +10,4 @@ public class TokenNotExistException extends Exception{
         super(message);
     }
 
-    public TokenNotExistException(){
-        super();
-    }
 }

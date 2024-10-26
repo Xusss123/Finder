@@ -10,7 +10,4 @@ public class UsernameNotFoundException extends Exception{
         super(message);
     }
 
-    public UsernameNotFoundException(){
-        super();
-    }
 }
