@@ -153,4 +153,8 @@ public class ApiService {
         return sendGetResponse(uri,token,apiKey, ProfileImageDtoResponse.class);
     }
 
+    public HttpStatusCode requestToDeleteAllComplaintByUserId(String uri, String token, String apiKey){
+        return sendDeleteRequest(uri,token,apiKey);
+    }
+
 }

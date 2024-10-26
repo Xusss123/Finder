@@ -42,9 +42,9 @@ microservices:
     port: 8083
     endpoints:
       validateToken: /auth/validate
-      user: /auth/get-user
-      addCardToUser: /auth/user/addCard
-      unlinkCardFromUser: /auth/user/card/del
+      user: /user/get
+      addCardToUser: /user/addCard
+      unlinkCardFromUser: /user/card/del
 
 card:
   images:

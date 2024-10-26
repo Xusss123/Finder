@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import karm.van.config.AuthenticationMicroServiceProperties;
 import karm.van.dto.CommentAuthorDto;
+import karm.van.dto.CommentDto;
 import karm.van.dto.CommentDtoResponse;
 import karm.van.dto.UserDtoRequest;
 import karm.van.exception.card.CardNotFoundException;
@@ -20,7 +21,6 @@ import karm.van.model.CardModel;
 import karm.van.model.CommentModel;
 import karm.van.repo.CardRepo;
 import karm.van.repo.CommentRepo;
-import karm.van.dto.CommentDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
@@ -173,9 +173,7 @@ public class CommentService {
         }
     }
 
-    private List<CommentDtoResponse> cacheComments(Long id,int limit,int page,String commentsKeyForCache, String token) throws SerializationException {
-        Page<CommentModel> comments = commentRepo.getCommentModelByCard_Id(id, PageRequest.of(page,limit));// Идем в БД
-
+    private List<CommentDtoResponse> getCachedComments(Page<CommentModel> comments,String token,String keyForCache){
         if (comments.isEmpty()){// Если комментариев вообще нет
             return List.of();//Возвращаем пустой список
         }
@@ -191,44 +189,32 @@ public class CommentService {
                         throw new RuntimeException(e.getMessage());
                     }
                     CommentDtoResponse commentDtoResponse = new CommentDtoResponse(
+                            comment.getId(),
                             comment.getText(),
                             comment.getCreatedAt(),
-                            authorDto);
+                            authorDto,
+                            comment.getReplyComments().size());
                     try {
-                        redis.rpush(commentsKeyForCache, objectMapper.writeValueAsString(commentDtoResponse));
+                        redis.rpush(keyForCache, objectMapper.writeValueAsString(commentDtoResponse));
                         listOfComments.add(commentDtoResponse);
                     } catch (JsonProcessingException e) {
                         throw new RuntimeException(new SerializationException("An error occurred during serialization"));
                     }
                 });
 
-        redis.expire(commentsKeyForCache, 60); // Устанавливаем время жизни равное минуте
+        redis.expire(keyForCache, 60); // Устанавливаем время жизни равное минуте
 
         return listOfComments;
     }
 
-    public List<CommentDtoResponse> getComments(Long id,int limit,int page, String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException {
+    public List<CommentDtoResponse> getComments(Long cardId,int limit,int page, String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException {
         String token = authorization.substring(7);
         checkToken(token);
         try {
-            if (cardRepo.existsById(id)){// Проверяем существует ли такая карточка
-                String commentsKeyForCache = "comments:card:"+id; // Ключ в редисе от списка комментариев
-
-                List<String> cachedComments = redis.lrange(commentsKeyForCache, 0, limit - 1);// Проверяем есть ли закешированные результаты
-
-                if (cachedComments.isEmpty()){// Если кеша нет
-                    return cacheComments(id,limit,page,commentsKeyForCache,token);
-
-                }else {// Если кеш найден
-                    return cachedComments.stream()
-                            .map(comment-> {
-                                try {
-                                    return objectMapper.readValue(comment,CommentDtoResponse.class);// Десирализуем текст в классы и складываем в лист
-                                } catch (JsonProcessingException e) {
-                                    throw new RuntimeException(new SerializationException("An error occurred during deserialization"));
-                                }
-                            }).toList();
-                }
+            if (cardRepo.existsById(cardId)){// Проверяем существует ли такая карточка
+                String commentsKeyForCache = "card:"+cardId+":limit:"+limit+":page:"+page; // Ключ в редисе от списка комментариев
+                Page<CommentModel> comments = commentRepo.getCommentModelByCard_Id(cardId, PageRequest.of(page,limit));
+                return cacheComments(comments,commentsKeyForCache,token,limit);
             }else {
                 throw new CardNotFoundException("Card with this id doesn't exist");
             }
@@ -237,6 +223,24 @@ public class CommentService {
         } catch (Exception e){
             log.debug("An unknown error occurred while deleting the card: "+e.getMessage()+" - "+e.getClass());
             throw new RuntimeException("Unexpected error occurred", e);
+        }
+    }
+
+    private List<CommentDtoResponse> cacheComments(Page<CommentModel> comments,String commentsKeyForCache, String token, int limit) throws SerializationException {
+        List<String> cachedComments = redis.lrange(commentsKeyForCache, 0, limit - 1);// Проверяем есть ли закешированные результаты
+
+        if (cachedComments.isEmpty()){// Если кеша нет
+            return getCachedComments(comments,token,commentsKeyForCache);
+
+        }else {// Если кеш найден
+            return cachedComments.stream()
+                    .map(comment-> {
+                        try {
+                            return objectMapper.readValue(comment,CommentDtoResponse.class);// Десирализуем текст в классы и складываем в лист
+                        } catch (JsonProcessingException e) {
+                            throw new RuntimeException(new SerializationException("An error occurred during deserialization"));
+                        }
+                    }).toList();
         }
     }
 
@@ -273,7 +277,7 @@ public class CommentService {
         Long commentAuthorId = commentModel.getUserId();
         UserDtoRequest user = requestToGetUserByToken(token);
 
-        if (!commentAuthorId.equals(user.id()) && user.role().stream().noneMatch(role->role.equals("ADMIN"))){
+        if (!commentAuthorId.equals(user.id()) && user.role().stream().noneMatch(role->role.equals("ROLE_ADMIN"))){
             throw new NotEnoughPermissionsException("You don't have permission to do this");
         }
     }
@@ -314,5 +318,46 @@ public class CommentService {
         checkPermissions(commentModel,token);
         requestToUnlinkCommentFromUser(token,commentId,commentModel.getUserId());
         commentRepo.deleteById(commentId);
+    }
+
+    @Transactional
+    public void replyComment(Long commentId, CommentDto commentDto, String authorization) throws InvalidDataException, TokenNotExistException, CommentNotFoundException, UsernameNotFoundException, CommentNotSavedException {
+        String token = authorization.substring(7);
+        checkToken(token);
+
+        String commentText = commentDto.text();
+
+        if (commentText.trim().isEmpty()){
+            throw new InvalidDataException("The text must be present");
+        }
+
+        CommentModel parentComment = commentRepo.getCommentModelById(commentId)
+                .orElseThrow(()->new CommentNotFoundException("Comment with this id doesn't exist"));
+
+        UserDtoRequest user = requestToGetUserByToken(token);
+
+        CommentModel commentModel = CommentModel.builder()
+                .text(commentDto.text())
+                .parentComment(parentComment)
+                .userId(user.id())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        commentRepo.save(commentModel);
+
+        requestToLinkCommentAndUser(commentModel.getId(),token);
+
+    }
+
+    public List<CommentDtoResponse> getReplyComments(Long commentId, int limit, int page, String authorization) throws TokenNotExistException, SerializationException, CardNotFoundException {
+        String token = authorization.substring(7);
+        checkToken(token);
+        if (commentRepo.existsById(commentId)){
+            String keyForCache = "parentComment:"+commentId+":limit:"+limit+":page:"+page;
+            Page<CommentModel> comments = commentRepo.getCommentModelsByParentComment_Id(commentId, PageRequest.of(page,limit));
+            return cacheComments(comments,keyForCache,token,limit);
+        }else {
+            throw new CardNotFoundException("Card with this id doesn't exist");
+        }
     }
 }

@@ -10,7 +10,4 @@ public class NotEnoughPermissionsException extends Exception{
         super(message);
     }
 
-    public NotEnoughPermissionsException(){
-        super();
-    }
 }

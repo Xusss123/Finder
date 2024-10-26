@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import karm.van.service.JwtService;
 import karm.van.service.MyUserDetailsService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,8 +27,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     private final MyUserDetailsService myUserDetailsService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         String authorizationHeader = request.getHeader("Authorization");
+
 
         String username = null;
         String jwtToken = null;
@@ -40,7 +42,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             } catch (Exception e) {
                 // Логируем и обрабатываем ошибку извлечения имени пользователя
                 logger.error("Не удалось извлечь имя пользователя из токена", e);
-                filterChain.doFilter(request, response);
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "invalid token or expired");
                 return;
             }
         }
@@ -63,12 +65,13 @@ public class JwtRequestFilter extends OncePerRequestFilter {
                 }
             } catch (UsernameNotFoundException e) {
                 logger.error("Пользователь не найден: " + username);
+                response.sendError(HttpServletResponse.SC_NOT_FOUND, e.getMessage());
+                return;
             } catch (DisabledException e) {
-                logger.error("Пользователь отключен: " + username);
+                response.sendError(HttpServletResponse.SC_FORBIDDEN, e.getMessage());
+                return;
             }
         }
-
-        // Пропускаем запрос дальше по цепочке фильтров
         filterChain.doFilter(request, response);
     }
 }

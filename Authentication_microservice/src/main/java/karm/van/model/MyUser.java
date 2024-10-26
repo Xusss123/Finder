@@ -62,9 +62,17 @@ public class MyUser implements Serializable {
     @Column(name = "comment_id")
     private List<Long> comments;
 
+    @ElementCollection
+    @CollectionTable(name = "user_favoriteCards",joinColumns = @JoinColumn(name = "user_id"))
+    @Column(name = "card_id")
+    private List<Long> favoriteCards;
+
     private Long profileImage;
 
     private boolean isEnable;
 
     private LocalDateTime unlockAt;
+
+    private String blockReason;
+
 }

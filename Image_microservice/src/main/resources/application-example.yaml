@@ -36,4 +36,4 @@ microservices:
     port: 8083
     endpoints:
       validateToken: /auth/validate
-      addProfileImage: /auth/user/addProfileImage
+      addProfileImage: /user/addProfileImage

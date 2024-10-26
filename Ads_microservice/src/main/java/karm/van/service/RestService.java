@@ -1,16 +1,13 @@
 package karm.van.service;
 
 import jakarta.annotation.PostConstruct;
-import karm.van.dto.ImageDto;
-import karm.van.dto.UserDtoRequest;
+import karm.van.dto.image.ImageDto;
+import karm.van.dto.user.UserDtoRequest;
 import karm.van.exception.other.ServerException;
-import karm.van.exception.other.TokenNotExistException;
-import karm.van.exception.user.UsernameNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;

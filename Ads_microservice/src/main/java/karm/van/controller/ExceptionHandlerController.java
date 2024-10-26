@@ -13,6 +13,7 @@ import karm.van.exception.user.NotEnoughPermissionsException;
 import karm.van.exception.user.UsernameNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -33,6 +34,12 @@ public class ExceptionHandlerController {
     @ExceptionHandler(SerializationException.class)
     public ResponseEntity<String> serializationException(SerializationException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<String> handleHttpMessageNotReadableException() {
+        String message = "Data entry error. Check if the field values are correct";
+        return ResponseEntity.badRequest().body(message);
     }
 
     @ExceptionHandler(TokenNotExistException.class)

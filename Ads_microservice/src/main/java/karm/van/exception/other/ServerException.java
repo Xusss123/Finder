@@ -10,7 +10,4 @@ public class ServerException extends Exception{
         super(message);
     }
 
-    public ServerException(){
-        super();
-    }
 }

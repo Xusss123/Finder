@@ -8,11 +8,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.file.AccessDeniedException;
 import java.util.Map;
 import java.util.Optional;
 
@@ -37,6 +39,7 @@ public class UserController {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
         }
     }
+
 
     @GetMapping("/profile/{userName}")
     public ResponseEntity<?> getFullUserData(HttpServletRequest request,
@@ -78,6 +81,28 @@ public class UserController {
         }
     }
 
+    @PostMapping("/toggle/favoriteCard/{cardId}")
+    public ResponseEntity<?> toggleFavoriteCard(@PathVariable Long cardId){
+        try {
+            String message = myUserService.toggleFavoriteCard(SecurityContextHolder.getContext().getAuthentication(),cardId);
+            return ResponseEntity.ok(message);
+        }catch (UsernameNotFoundException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/favoriteCard/get")
+    public ResponseEntity<?> getUserFavoriteCards(){
+        try {
+            return ResponseEntity.ok(myUserService.getUserFavoriteCards(SecurityContextHolder.
+                    getContext().getAuthentication()));
+        }catch (UsernameNotFoundException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }catch (JsonProcessingException e){
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
     @PostMapping("/addCard/{cardId}")
     public ResponseEntity<?> addCardToUser(@PathVariable("cardId") Long cardId,
                                            @RequestHeader("x-api-key") String apiKey){
@@ -91,6 +116,46 @@ public class UserController {
             return ResponseEntity.badRequest().body(Map.of("error",e.getMessage()));
         }catch (BadCredentialsException e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/block/{userName}")
+    public ResponseEntity<?> blockUser(@PathVariable String userName,
+                                       @RequestParam int year,
+                                       @RequestParam int month,
+                                       @RequestParam int dayOfMonth,
+                                       @RequestParam int hours,
+                                       @RequestParam int minutes,
+                                       @RequestParam int seconds,
+                                       @RequestParam String reason){
+        try {
+            myUserService.blockUser(userName,year,month,dayOfMonth,hours,minutes,seconds,reason);
+            return ResponseEntity.ok("user successfully blocked");
+        }catch (UsernameNotFoundException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/unblock/{userName}")
+    public ResponseEntity<?> unblockUser(@PathVariable String userName){
+        try {
+            myUserService.unblockUser(userName);
+            return ResponseEntity.ok("user successfully unblocked");
+        }catch (UsernameNotFoundException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PatchMapping("/toggle/authorities/{userName}")
+    public ResponseEntity<?> toggleUserAuthorities(@PathVariable String userName){
+        try {
+            String message = myUserService.toggleUserAuthorities(userName);
+            return ResponseEntity.ok(message);
+        }catch (UsernameNotFoundException | AccessDeniedException e){
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
@@ -150,7 +215,7 @@ public class UserController {
             return ResponseEntity.ok("User deleted successfully");
         } catch (BadCredentialsException e){
             return ResponseEntity.badRequest().body(e.getMessage());
-        } catch (CardNotDeletedException | ImageNotMovedException | ImageNotDeletedException e){
+        } catch (CardNotDeletedException | ImageNotMovedException | ImageNotDeletedException | ComplaintsNotDeletedException e){
             log.error("class: "+e.getClass()+" message: "+e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Due to an internal error, your account was not deleted");
         }

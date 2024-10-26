@@ -1,8 +1,8 @@
 package karm.van.controller;
 
-import karm.van.dto.CardDto;
-import karm.van.dto.CardPageResponseDto;
-import karm.van.dto.FullCardDtoForOutput;
+import karm.van.dto.card.CardDto;
+import karm.van.dto.card.CardPageResponseDto;
+import karm.van.dto.card.FullCardDtoForOutput;
 import karm.van.exception.card.CardNotDeletedException;
 import karm.van.exception.card.CardNotFoundException;
 import karm.van.exception.card.CardNotSavedException;

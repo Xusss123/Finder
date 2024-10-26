@@ -10,7 +10,4 @@ public class SerializationException extends Exception{
         super(message);
     }
 
-    public SerializationException(){
-        super();
-    }
 }

@@ -10,7 +10,4 @@ public class CommentNotDeletedException extends Exception{
         super(message);
     }
 
-    public CommentNotDeletedException(){
-        super();
-    }
 }

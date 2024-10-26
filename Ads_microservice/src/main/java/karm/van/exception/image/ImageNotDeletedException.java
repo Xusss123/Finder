@@ -9,8 +9,4 @@ public class ImageNotDeletedException extends Exception{
     public ImageNotDeletedException(String message){
         super(message);
     }
-
-    public ImageNotDeletedException(){
-        super();
-    }
 }

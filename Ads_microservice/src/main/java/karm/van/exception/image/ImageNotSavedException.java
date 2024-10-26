@@ -10,7 +10,4 @@ public class ImageNotSavedException extends Exception{
         super(message);
     }
 
-    public ImageNotSavedException(){
-        super();
-    }
 }

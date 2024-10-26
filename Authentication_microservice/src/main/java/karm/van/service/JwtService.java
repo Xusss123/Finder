@@ -107,8 +107,5 @@ public class JwtService {
         return Jwts.parser().setSigningKey(secret_key).parseClaimsJws(token).getBody();
     }
 
-    public UserDetails getUserDetailsFromToken(String token) {
-        return myUserDetailsService.loadUserByUsername(extractUsername(token));
-    }
 }
 
