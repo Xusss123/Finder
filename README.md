@@ -7,7 +7,7 @@ Anyone can participate and borrow code, but it's important to respect the licens
 # Microservices
 
 ### Ads Microservice
-Manages announcements and their content
+Manages announcements and their content, including user complaints
 ### Endpoints:
 
 #### **1. GET** `/card/{id}/get`
@@ -122,7 +122,54 @@ Manages announcements and their content
 
 ---
 
-#### **3. POST** `/card/add`
+#### **3. GET** `/complaint/get`
+
+- **Description**: Retrieve a list of complaints with optional filtering.
+- **Query Parameters**:
+    - `limit` (optional, default: 5) — The maximum number of complaints to return.
+    - `page` (optional, default: 0) — The page number for pagination.
+    - `complaintType` (optional, default: all) — The type of complaint to filter by:
+        - `card` — Retrieve complaints related to ads.
+        - `user` — Retrieve complaints related to users.
+        - If not specified or invalid, it will return all complaints.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Sample Response**:
+    ```json
+    {
+	    "complaints": [
+	        {
+	            "type": "card",
+	            "complaintId": 6,
+	            "reason": "reason",
+	            "complaintAuthorName": "venik6",
+	            "cardId": 2
+	        },
+	        {
+	            "type": "user",
+	            "complaintId": 7,
+	            "reason": "reason",
+	            "complaintAuthorName": "venik6",
+	            "userName": "venik3"
+	        }
+	    ],
+	    "last": false,
+	    "totalPages": 2,
+	    "totalElements": 3,
+	    "first": true,
+	    "numberOfElements": 2
+    }
+    ```
+
+- **Response Codes**:
+    - `200 OK`: Successfully retrieved the list of complaints.
+    - `400 Bad Request`: If the token is missing or invalid.
+    - `403 Forbidden`: If the user does not have sufficient permissions to view complaints.
+    - `500 Internal Server Error`: If there is a failure during the retrieval process.
+
+---
+
+#### **4. POST** `/card/add`
 
 - **Description**: Add a new ad.
 - **Request Body**:
@@ -137,7 +184,30 @@ Manages announcements and their content
 
 ---
 
-#### **4. PATCH** `/card/{id}/patch`
+#### **5. POST** `/complaint/create`
+
+- **Description**: Submit a complaint about a specific user or ad.
+- **Request Body**:
+    - `complaintDto` — The complaint details.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Consumes**: `multipart/form-data`
+- **Request body**:
+```json
+{
+    "targetType":"USER or CARD", 
+    "reason": "reason",
+    "complaintTargetId":"If you are complaining about a user, enter the user ID. If you are complaining about an advertisement, enter the advertisement ID."
+}
+```   
+- **Response Codes**:
+    - `200 OK`: Complaint successfully submitted.
+    - `400 Bad Request`: If the token is missing or invalid.
+    - `404 Not Found`: If the user or card related to the complaint is not found.
+
+---
+
+#### **6. PATCH** `/card/{id}/patch`
 
 - **Description**: Update an existing ad.
 - **Limitations**:
@@ -159,7 +229,7 @@ Manages announcements and their content
 
 ---
 
-#### **5. DELETE** `/card/del/{id}`
+#### **7. DELETE** `/card/del/{id}`
 
 - **Description**: Delete an ad by its unique ID.
 - **Path Parameter**:
@@ -173,7 +243,7 @@ Manages announcements and their content
 
 ---
 
-#### **6. DELETE** `/card/image/del/{cardId}/{imageId}`
+#### **8. DELETE** `/card/image/del/{cardId}/{imageId}`
 
 - **Description**: Delete a specific image from an ad.
 - **Path Parameters**:
@@ -185,6 +255,21 @@ Manages announcements and their content
     - `200 OK`: Successfully deleted the image from the ad.
     - `404 Not Found`: If the ad or image with the given ID does not exist.
     - `500 Internal Server Error`: If there is a failure during the deletion process.
+
+---
+
+#### **9. DELETE** `/complaint/delOne/{complaintId}`
+
+- **Description**: Delete a specific complaint by its unique ID.
+- **Path Parameter**:
+    - `complaintId` — The unique identifier of the complaint to be deleted.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: Successfully deleted the complaint.
+    - `400 Bad Request`: If the token is missing or invalid.
+    - `404 Not Found`: If the token owner does not exist.
+    - `403 Forbidden`: If the user does not have permission to delete the complaint.
 
 ---
 
@@ -337,6 +422,79 @@ Manages user authentication and authorization
 
 ---
 
+#### **8. POST** `/user/toggle/favoriteCard/{cardId}`
+
+- **Description**: Adds a card to your favorites the first time you access it and removes it from there the second time you access it..
+- **Path Parameter**:
+    - `cardId` — Unique identifier of the card.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: Successfully added or removed the card from favorites.
+    - `400 Bad Request`: If the user is not found.
+
+---
+
+#### **9. GET** `/user/favoriteCard/get`
+
+- **Description**: Retrieves the list of favorite cards for the current user.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: returns the id of your favorite ads.
+      ```json
+      [
+	    2,
+	    3
+      ]
+      ```
+    - `400 Bad Request`: If the user is not found.
+    - `500 Internal Server Error`: If there is an error processing the request.
+
+---
+
+#### **10. PATCH** `/user/block/{userName}`
+
+- **Description**: Blocks the user with the specified username.
+- **Path Parameter**:
+    - `userName` — The username of the user to be blocked.
+- **Request Parameters**:
+    - `year`, `month`, `dayOfMonth`, `hours`, `minutes`, `seconds` — Date when the user will be unlocked.
+    - `reason` — Reason for blocking.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: User successfully blocked.
+    - `400 Bad Request`: If the user is not found.
+
+---
+
+#### **11. PATCH** `/user/unblock/{userName}`
+
+- **Description**: Unblocks the user with the specified username.
+- **Path Parameter**:
+    - `userName` — The username of the user to be unblocked.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: User successfully unblocked.
+    - `400 Bad Request`: If the user is not found.
+
+---
+
+#### **12. PATCH** `/user/toggle/authorities/{userName}`
+
+- **Description**: Adds the ADMIN role (if there was none) or deletes it (if there was).
+- **Path Parameter**:
+    - `userName` — The username for which to change roles.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: Successfully toggled the user's roles.
+    - `400 Bad Request`: If the user is not found or if there are insufficient permissions to change roles.
+
+---
+
 ### Comment Microservice
 Responsible for comment management
 ### Endpoints:
@@ -352,22 +510,35 @@ Responsible for comment management
 - **Response Codes**:
     - `200 OK`: Returns card comments:
       ```json
-      [
-	    {
-	        "text": "СУПЕР",
-	        "createdAt": "2024-10-21T12:41:03.097543",
-	        "commentAuthorDto": {
-	            "name": "johndoe123456"
-	        }
-	    },
-	    {
-	        "text": "СУПЕР",
-	        "createdAt": "2024-10-21T12:41:05.300401",
-	        "commentAuthorDto": {
-	            "name": "johndoe123456"
-	        }
-	    }
-      ]
+		[
+		    {
+			"commentId": 1,
+			"text": "СУПЕР",
+			"createdAt": "2024-10-26T20:52:21.048719",
+			"commentAuthorDto": {
+			    "name": "venik5"
+			},
+			"replyQuantity": 0
+		    },
+		    {
+			"commentId": 2,
+			"text": "СУПЕР",
+			"createdAt": "2024-10-26T20:52:22.74424",
+			"commentAuthorDto": {
+			    "name": "venik5"
+			},
+			"replyQuantity": 2
+		    },
+		    {
+			"commentId": 3,
+			"text": "СУПЕР",
+			"createdAt": "2024-10-26T20:52:24.309763",
+			"commentAuthorDto": {
+			    "name": "venik5"
+			},
+			"replyQuantity": 1
+		    }
+		]
       ```
     - `400 Bad Request`: If the ad was not found or there was an unexpected error.
     - `401 Unauthorized`: If the token is invalid or user not found.
@@ -430,6 +601,76 @@ Responsible for comment management
     - `400 Bad Request`: If the comment is not found or if the provided data is invalid.
     - `401 Unauthorized`: If the provided token does not exist or is invalid.
     - `500 Internal Server Error`: If there is an unknown error during the patching process.
+
+---
+
+#### **5. POST** `/comment/reply/{commentId}`
+
+- **Description**: Add a reply to a specific comment by its ID.
+- **Path Parameter**:
+    - `commentId` — The ID of the comment to which the reply will be added.
+- **Request Body**:
+    - `commentDto`: Contains the text of the reply to be added:
+    ```json
+    {
+      "text": "This is a reply"
+    }
+    ```
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: If the reply is added successfully.
+    - `401 Unauthorized`: If the token does not exist or is invalid.
+    - `500 Internal Server Error`: If the comment is not found, if the entered data is incorrect, or if an unknown error occurs.
+
+---
+
+#### **6. GET** `/comment/reply/get/{commentId}`
+
+- **Description**: Retrieve all replies to a specific comment by its ID.
+- **Path Parameter**:
+    - `commentId` — The ID of the comment for which replies are being retrieved.
+- **Request Parameters**:
+    - `page` — The page number to retrieve (optional, default is 0).
+    - `limit` — The number of replies per page (optional, default is 10).
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Response Codes**:
+    - `200 OK`: Returns a list of replies to the specified comment:
+      ```json
+		[
+		    {
+		        "commentId": 4,
+		        "text": "СУПЕР",
+		        "createdAt": "2024-10-26T20:54:09.6585",
+		        "commentAuthorDto": {
+		            "name": "venik5"
+		        },
+		        "replyQuantity": 0
+		    },
+		    {
+		        "commentId": 5,
+		        "text": "СУПЕР",
+		        "createdAt": "2024-10-26T20:54:10.891731",
+		        "commentAuthorDto": {
+		            "name": "venik5"
+		        },
+		        "replyQuantity": 0
+		    },
+		    {
+		        "commentId": 6,
+		        "text": "СУПЕР",
+		        "createdAt": "2024-10-26T20:54:11.652032",
+		        "commentAuthorDto": {
+		            "name": "venik5"
+		        },
+		        "replyQuantity": 0
+		    }
+		]
+      ```
+    - `401 Unauthorized`: If the token is invalid or user not found.
+    - `400 Bad Request`: If the comment is not found.
+    - `500 Internal Server Error`: If an internal error occurs.
 
 ---
 
