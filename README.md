@@ -4,11 +4,45 @@ The platform enables users to create announcements for seeking teams for their p
 
 Anyone can participate and borrow code, but it's important to respect the license terms.
 
+<details>
+  <summary><strong>Currently Implemented:</strong></summary>
+
+  ### Ad Management
+  - **Create, edit, and delete ads.**
+  - **View ad listings.**
+  - **Add or remove ads from favorites.**
+
+  ### Comment and Reply Management
+  - **Create, edit, and delete comments on ads.**
+  - **Add and manage reply comments.**
+
+  ### User Profile and Account Management
+  - **User registration and login.**
+  - **Edit user profile information.**
+  - **Update profile avatar.**
+  - **View user profile.**
+  - **Delete user account.**
+
+  ### Access Control and Security
+  - **Access token validation.**
+  - **Issue a new access token using a refresh token.**
+
+  ### Admin Tools and Complaint Management
+  - **Submit complaints about users or ads.**
+    - **Admin privileges include:**
+      - Viewing the list of complaints.
+      - Removing complaints.
+  - **User Moderation:**
+    - Ban or unban users.
+    - Adjust user roles (promote or demote).
+</details>
+
 # Microservices
 
 ### Ads Microservice
 Manages announcements and their content, including user complaints
-### Endpoints:
+<details>
+  <summary><strong>Endpoints:</strong></summary>
 
 #### **1. GET** `/card/{id}/get`
 
@@ -270,12 +304,15 @@ Manages announcements and their content, including user complaints
     - `400 Bad Request`: If the token is missing or invalid.
     - `404 Not Found`: If the token owner does not exist.
     - `403 Forbidden`: If the user does not have permission to delete the complaint.
+</details>
 
 ---
 
 ### Authentication Microservice
 Manages user authentication and authorization
-### Endpoints:
+<details>
+  <summary><strong>Endpoints:</strong></summary>
+	
 #### **1. POST** `/auth/register`
 
 - **Description**: Register a new user.
@@ -492,12 +529,15 @@ Manages user authentication and authorization
 - **Response Codes**:
     - `200 OK`: Successfully toggled the user's roles.
     - `400 Bad Request`: If the user is not found or if there are insufficient permissions to change roles.
+</details>
 
 ---
 
 ### Comment Microservice
 Responsible for comment management
-### Endpoints:
+<details>
+  <summary><strong>Endpoints:</strong></summary>
+	
 #### **1. GET** `/comment/get/{cardId}`
 
 - **Description**: Receive all comments on this ad.
@@ -671,12 +711,15 @@ Responsible for comment management
     - `401 Unauthorized`: If the token is invalid or user not found.
     - `400 Bad Request`: If the comment is not found.
     - `500 Internal Server Error`: If an internal error occurs.
+</details>
 
 ---
 
 ### Image Microservice
 Necessary for working with images
-### Endpoints:
+<details>
+  <summary><strong>Endpoints:</strong></summary>
+	
 #### **1. POST** `/image/addProfileImage`
 
 - **Description**: Adds an image to a profile.
@@ -691,3 +734,5 @@ Necessary for working with images
     - `200 OK`: If the profile picture has been successfully added.
     - `401 Unauthorized`: If the token does not exist or is invalid.
     - `500 Internal Server Error`: If there was an internal problem with saving the image or any other unexpected error.
+</details>
+
