@@ -2,13 +2,13 @@ package karm.van.dto.card;
 
 import karm.van.dto.image.ImageDto;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 public record FullCardDtoForOutput(Long id,
                                    String title,
                                    String text,
-                                   LocalDateTime createTime,
+                                   LocalDate createTime,
                                    List<ImageDto> images,
                                    String authorName) {
 }

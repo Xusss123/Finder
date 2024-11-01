@@ -22,6 +22,7 @@ import java.util.Map;
 @Log4j2
 @RequiredArgsConstructor
 @RestController
+@CrossOrigin
 @RequestMapping("/auth")
 public class AuthController {
     private final MyUserService myUserService;

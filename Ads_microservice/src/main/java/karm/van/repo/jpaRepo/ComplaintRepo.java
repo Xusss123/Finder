@@ -1,4 +1,4 @@
-package karm.van.repository;
+package karm.van.repo.jpaRepo;
 
 import karm.van.complaint.ComplaintType;
 import karm.van.model.Complaint;

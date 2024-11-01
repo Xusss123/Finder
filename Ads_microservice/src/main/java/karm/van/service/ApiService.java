@@ -3,7 +3,6 @@ package karm.van.service;
 import jakarta.annotation.PostConstruct;
 import karm.van.dto.image.ImageDto;
 import karm.van.dto.user.UserDtoRequest;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -21,7 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
-@RequiredArgsConstructor
+
 @Component
 @Slf4j
 public class ApiService {
