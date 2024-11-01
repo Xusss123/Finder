@@ -1,5 +1,17 @@
 version: '3.8'
 services:
+
+  elastic:
+    image: elasticsearch:7.17.22
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=true
+    restart: always
+    ports:
+      - "9200:9200"
+    networks:
+      - app-network
+
   postgres:
     image: postgres:16-alpine
     environment:
@@ -99,10 +111,12 @@ services:
       IMAGE_HOST: image-microservice
       AUTHENTICATION_HOST: auth-microservice
       X_API_KEY: ${X_API_KEY}
+      ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
     depends_on:
       - auth-microservice
       - postgres
       - redis
+      - elastic
     restart: always
     ports:
       - "8080:8080"
@@ -123,6 +137,7 @@ services:
       X_API_KEY: ${X_API_KEY}
     depends_on:
       - postgres
+      - redis
     restart: always
     ports:
       - "8083:8083"

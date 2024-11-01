@@ -16,12 +16,16 @@ import karm.van.exception.other.TokenNotExistException;
 import karm.van.exception.user.NotEnoughPermissionsException;
 import karm.van.exception.user.UsernameNotFoundException;
 import karm.van.service.CardService;
+import karm.van.service.ElasticService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.apache.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -31,10 +35,26 @@ import java.util.Optional;
 @RequestMapping("/card/")
 public class CardController {
     private final CardService cardService;
+    private final ElasticService elasticService;
 
     @GetMapping("{id}/get")
     public FullCardDtoForOutput getCard(@PathVariable Long id, @RequestHeader("Authorization") String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException, UsernameNotFoundException {
         return cardService.getCard(id,authorization);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchCards(@RequestParam(required = false,defaultValue = "0") int pageNumber,
+                                         @RequestParam(required = false,defaultValue = "5") int limit,
+                                         @RequestParam String query,
+                                         @RequestParam(required = false) Optional<LocalDate> createTime,
+                                         @RequestHeader("Authorization") String authorization){
+        try {
+            return ResponseEntity.ok(elasticService.search(query,pageNumber,limit,authorization,createTime));
+        }catch (SerializationException e){
+            return ResponseEntity.internalServerError().body(e.getMessage());
+        }catch (TokenNotExistException e){
+            return ResponseEntity.status(HttpStatus.SC_UNAUTHORIZED).body(e.getMessage());
+        }
     }
 
     @GetMapping("getAll/{pageNumber}/{limit}")

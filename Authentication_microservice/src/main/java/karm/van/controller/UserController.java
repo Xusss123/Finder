@@ -21,6 +21,7 @@ import java.util.Optional;
 @Log4j2
 @RequiredArgsConstructor
 @RestController
+@CrossOrigin
 @RequestMapping("/user")
 public class UserController {
     private final MyUserService myUserService;

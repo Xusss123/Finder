@@ -24,9 +24,11 @@ import karm.van.exception.other.SerializationException;
 import karm.van.exception.other.TokenNotExistException;
 import karm.van.exception.user.NotEnoughPermissionsException;
 import karm.van.exception.user.UsernameNotFoundException;
+import karm.van.model.CardDocument;
 import karm.van.model.CardModel;
-import karm.van.repository.CardRepo;
-import karm.van.repository.ComplaintRepo;
+import karm.van.repo.elasticRepo.ElasticRepo;
+import karm.van.repo.jpaRepo.CardRepo;
+import karm.van.repo.jpaRepo.ComplaintRepo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,7 +43,7 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import redis.clients.jedis.JedisPooled;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +60,7 @@ public class CardService {
     private final AuthenticationMicroServiceProperties authenticationProperties;
     private final ApiService apiService;
     private final ComplaintRepo complaintRepo;
+    private final ElasticRepo elasticRepo;
 
     @Value("${redis.host}")
     private String redisHost;
@@ -85,7 +88,7 @@ public class CardService {
         CardModel cardModel = CardModel.builder()
                 .title(cardDto.title())
                 .text(cardDto.text())
-                .createTime(LocalDateTime.now())
+                .createTime(LocalDate.now())
                 .build();
 
        return cardRepo.save(cardModel);
@@ -208,6 +211,18 @@ public class CardService {
         requestToDeleteImagesFromMinio(imageIds,token);
     }
 
+    @Async
+    protected void addCardIntoElastic(CardModel cardModel){
+        CardDocument cardDocument = CardDocument.builder()
+                .id(cardModel.getId())
+                .title(cardModel.getTitle())
+                .text(cardModel.getText())
+                .createTime(cardModel.getCreateTime())
+                .build();
+
+        elasticRepo.save(cardDocument);
+    }
+
     @Transactional
     public void addCard(List<MultipartFile> files, CardDto cardDto, String authorization)
             throws ImageNotSavedException, CardNotSavedException, ImageLimitException, TokenNotExistException, UsernameNotFoundException {
@@ -230,6 +245,7 @@ public class CardService {
             cardRepo.save(cardModel);
 
             requestToLinkCardAndUser(cardModel,token);
+            addCardIntoElastic(cardModel);
 
         } catch (ImageNotSavedException | ImageLimitException | UsernameNotFoundException | TokenNotExistException e) {
             log.debug("in class - " + e.getClass() + " an error has occurred: " + e.getMessage());
@@ -377,6 +393,12 @@ public class CardService {
         }
     }
 
+    @Async
+    protected void delCardIntoElastic(CardModel cardModel) {
+        elasticRepo.findById(cardModel.getId())
+                .ifPresent(elasticRepo::delete);
+    }
+
     @Transactional
     public void deleteCard(Long cardId, String authorization) throws CardNotFoundException, TokenNotExistException, CommentNotDeletedException, ImageNotMovedException, UsernameNotFoundException, NotEnoughPermissionsException, CardNotSavedException {
         String token = authorization.substring(7);
@@ -405,6 +427,7 @@ public class CardService {
             requestToDeleteImagesFromMinio(imagesId,token);
 
             cardRepo.deleteById(cardId);
+            delCardIntoElastic(cardModel);
         } catch (ImageNotMovedException e) {
             rollBackCard(cardId,token);
             throw e;
@@ -436,11 +459,7 @@ public class CardService {
                 }).toList();
     }
 
-    private CardPageResponseDto cacheCards(int pageNumber, int limit, String token, String key) throws SerializationException {
-        String objectAsString;
-
-        Page<CardModel> page = cardRepo.findAll(PageRequest.of(pageNumber,limit));
-
+    public CardPageResponseDto cachingAndCreateDto(Page<CardModel> page, String token, String redisKey) throws SerializationException {
         CardPageResponseDto cardPageResponseDto = new CardPageResponseDto(
                 getFullCardsDto(token,page),
                 page.isLast(),
@@ -450,16 +469,16 @@ public class CardService {
                 page.getNumberOfElements());
 
         try {
-            objectAsString = objectMapper.writeValueAsString(cardPageResponseDto);
+            String objectAsString = objectMapper.writeValueAsString(cardPageResponseDto);
+            redis.set(redisKey,objectAsString);
+            redis.expire(redisKey,60);
         } catch (JsonProcessingException e) {
             throw new SerializationException("an error occurred during deserialization");
         }
 
-        redis.set(key,objectAsString);
-        redis.expire(key,60);
-
         return cardPageResponseDto;
     }
+
 
     public CardPageResponseDto getAllCards(int pageNumber, int limit, String authorization) throws TokenNotExistException, SerializationException {
         String token = authorization.substring(7);
@@ -473,9 +492,28 @@ public class CardService {
                 throw new SerializationException("an error occurred during serialization");
             }
         }else {
-            return cacheCards(pageNumber,limit,token,key);
+            Page<CardModel> page = cardRepo.findAll(PageRequest.of(pageNumber,limit));
+            return cachingAndCreateDto(page,token,key);
         }
 
+    }
+
+    @Async
+    protected void patchCardTextIntoElastic(Long id,CardDto cardDto){
+        String title = cardDto.title();
+        String text = cardDto.text();
+
+        elasticRepo.findById(id)
+                .ifPresent(cardDocument -> {
+                    if (!title.trim().isEmpty()){
+                        cardDocument.setTitle(title);
+                    }
+                    if (text.trim().isEmpty()){
+                        cardDocument.setText(text);
+                    }
+
+                    elasticRepo.save(cardDocument);
+                });
     }
 
     @Transactional
@@ -492,7 +530,9 @@ public class CardService {
 
         if (cardDtoOptional.isPresent()) {
             try {
-                addCardText(cardDtoOptional.get(), cardModel);
+                CardDto cardDto = cardDtoOptional.get();
+                addCardText(cardDto, cardModel);
+                patchCardTextIntoElastic(id,cardDto);
                 cardChange = true;
             } catch (CardNotSavedException e) {
                 throw new CardNotSavedException(e.getMessage());

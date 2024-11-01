@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,7 +27,7 @@ public class CardModel {
     @Column(columnDefinition = "TEXT")
     private String text;
 
-    private LocalDateTime createTime;
+    private LocalDate createTime;
 
     private Long userId;
 

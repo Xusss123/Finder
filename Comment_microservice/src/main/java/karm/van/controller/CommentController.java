@@ -53,7 +53,7 @@ public class CommentController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (Exception e) {
             log.error("class: "+e.getClass()+" message: "+e.getMessage());
-            return ResponseEntity.badRequest().body("An unknown error occurred while adding comment");
+            return ResponseEntity.internalServerError().body("An unknown error occurred while adding comment");
         }
     }
 
@@ -84,12 +84,12 @@ public class CommentController {
             return ResponseEntity.ok(commentService.getReplyComments(commentId,limit,page,authorization));
         } catch (TokenNotExistException e){
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
-        } catch (CardNotFoundException e) {
+        } catch (CommentNotFoundException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
         } catch (SerializationException e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
         }catch (Exception e){
-            return ResponseEntity.badRequest().body("An unknown error occurred while deleting one comment: "+e.getMessage()+" - "+e.getClass());
+            return ResponseEntity.internalServerError().body("An unknown error occurred while deleting one comment: "+e.getMessage()+" - "+e.getClass());
         }
     }
 

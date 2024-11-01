@@ -349,7 +349,7 @@ public class CommentService {
 
     }
 
-    public List<CommentDtoResponse> getReplyComments(Long commentId, int limit, int page, String authorization) throws TokenNotExistException, SerializationException, CardNotFoundException {
+    public List<CommentDtoResponse> getReplyComments(Long commentId, int limit, int page, String authorization) throws TokenNotExistException, SerializationException, CommentNotFoundException {
         String token = authorization.substring(7);
         checkToken(token);
         if (commentRepo.existsById(commentId)){
@@ -357,7 +357,7 @@ public class CommentService {
             Page<CommentModel> comments = commentRepo.getCommentModelsByParentComment_Id(commentId, PageRequest.of(page,limit));
             return cacheComments(comments,keyForCache,token,limit);
         }else {
-            throw new CardNotFoundException("Card with this id doesn't exist");
+            throw new CommentNotFoundException("Comment with this id doesn't exist");
         }
     }
 }
