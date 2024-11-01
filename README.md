@@ -305,7 +305,6 @@ Manages announcements and their content, including user complaints
     - `400 Bad Request`: If the token is missing or invalid.
     - `404 Not Found`: If the token owner does not exist.
     - `403 Forbidden`: If the user does not have permission to delete the complaint.
-</details>
 
 ---
 
@@ -365,6 +364,7 @@ Manages announcements and their content, including user complaints
     - `200 OK`: Successful retrieval.
     - `401 Unauthorized`: If the token is invalid.
     - `500 Internal Server Error`: If there is a failure during the deletion process.
+</details>
 
 ---
 
