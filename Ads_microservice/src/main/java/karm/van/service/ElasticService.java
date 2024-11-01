@@ -26,7 +26,6 @@ import redis.clients.jedis.JedisPooled;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @RequiredArgsConstructor
