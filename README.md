@@ -11,6 +11,7 @@ Anyone can participate and borrow code, but it's important to respect the licens
   - **Create, edit, and delete ads.**
   - **View ad listings.**
   - **Add or remove ads from favorites.**
+  - **Integration with elastic search engine.**
 
   ### Comment and Reply Management
   - **Create, edit, and delete comments on ads.**
@@ -305,6 +306,65 @@ Manages announcements and their content, including user complaints
     - `404 Not Found`: If the token owner does not exist.
     - `403 Forbidden`: If the user does not have permission to delete the complaint.
 </details>
+
+---
+
+#### **10. GET** `/card/search`
+
+- **Description**: Search for desired maps by query.
+- **Path Parameter**:
+  - `limit` (optional, default: 5) — The maximum number of complaints to return.
+  - `page` (optional, default: 0) — The page number for pagination.
+  - `query` — Information you need.
+  - `createTime` (optional) — search filter from this date.
+- **Request Header**:
+    - `Authorization` — The JWT token for authentication.
+- **Sample Response**:
+    ```json
+	{
+	    "cards": [
+	        {
+	            "id": 3,
+	            "title": "1-я карточка",
+	            "text": "описание 1-й карточки",
+	            "createTime": "2024-11-01",
+	            "images": [
+	                {
+	                    "id": 9,
+	                    "imageBucket": "images",
+	                    "imageName": "01427c90-c59f-4f51-9792-83520bd335e6-R.jpg"
+	                },
+	                {
+	                    "id": 10,
+	                    "imageBucket": "images",
+	                    "imageName": "01427c90-c59f-4f51-9792-83520bd335e6-ojpu5betwgy0zqsnlq87xhouqtiydlwk.jpg"
+	                },
+	                {
+	                    "id": 11,
+	                    "imageBucket": "images",
+	                    "imageName": "01427c90-c59f-4f51-9792-83520bd335e6-ojpu5betwgy0zqsnlq87xhouqtiydlwk (1).jpg"
+	                },
+	                {
+	                    "id": 12,
+	                    "imageBucket": "images",
+	                    "imageName": "01427c90-c59f-4f51-9792-83520bd335e6-R (1).jpg"
+	                }
+	            ],
+	            "authorName": "venik6"
+	        }
+	    ],
+	    "last": true,
+	    "totalPages": 1,
+	    "totalElements": 1,
+	    "first": true,
+	    "numberOfElements": 1
+	}
+    ```
+    
+- **Response Codes**:
+    - `200 OK`: Successful retrieval.
+    - `401 Unauthorized`: If the token is invalid.
+    - `500 Internal Server Error`: If there is a failure during the deletion process.
 
 ---
 
