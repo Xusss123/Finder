@@ -15,12 +15,12 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      - POSTGRES_DB=DATABASE_NAME
-      - POSTGRES_USER=DOCKER_POSTGRES_USERNAME
-      - POSTGRES_PASSWORD=DOCKER_POSTGRES_PASSWORD
+      - POSTGRES_DB=${POSTGRES_DB}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     restart: always
     volumes:
-      - D:/postgres_datapart:/var/lib/postgresql/data
+      - /your/local/path:/var/lib/postgresql/data  # Replace with your path
     ports:
       - "5432:5432"
     networks:
@@ -39,17 +39,17 @@ services:
     image: minio/minio:latest
     container_name: minio
     ports:
-      - "9000:9000"  # API порт для работы с объектным хранилищем
-      - "9001:9001"  # Порт для веб-консоли
+      - "9000:9000"  # Object storage API port
+      - "9001:9001"  # Web console port
     volumes:
-      - D:/minio/data:/data
+      - /your/local/path:/data  # Replace with your path
     environment:
-      - MINIO_ROOT_USER=DOCKER_MINIO_USERNAME
-      - MINIO_ROOT_PASSWORD=DOCKER_MINIO_PASSWORD
+      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
+      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     restart: always
     networks:
       - app-network
-    command: server /data --console-address ":9001" # Указывает Docker, какой именно командой запускать контейнер после его создания
+    command: server /data --console-address ":9001"
 
   comment:
     image: comment_microservice
@@ -57,9 +57,9 @@ services:
       context: .
       dockerfile: Comment_microservice/Dockerfile
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/DATABASE_NAME
-      SPRING_DATASOURCE_USERNAME: DOCKER_POSTGRES_USERNAME
-      SPRING_DATASOURCE_PASSWORD: DOCKER_POSTGRES_PASSWORD
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis
       AUTHENTICATION_HOST: auth-microservice
       X_API_KEY: ${X_API_KEY}
@@ -79,11 +79,11 @@ services:
       context: .
       dockerfile: Image_microservice/Dockerfile
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/DATABASE_NAME
-      SPRING_DATASOURCE_USERNAME: DOCKER_POSTGRES_USERNAME
-      SPRING_DATASOURCE_PASSWORD: DOCKER_POSTGRES_PASSWORD
-      MINIO_USERNAME: DOCKER_MINIO_USERNAME
-      MINIO_PASSWORD: DOCKER_MINIO_PASSWORD
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MINIO_USERNAME: ${MINIO_ROOT_USER}
+      MINIO_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_ENDPOINT: minio
       AUTHENTICATION_HOST: auth-microservice
       X_API_KEY: ${X_API_KEY}
@@ -103,11 +103,12 @@ services:
       context: .
       dockerfile: Ads_microservice/Dockerfile
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/DATABASE_NAME
-      SPRING_DATASOURCE_USERNAME: DOCKER_POSTGRES_USERNAME
-      SPRING_DATASOURCE_PASSWORD: DOCKER_POSTGRES_PASSWORD
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOST: redis
       COMMENT_HOST: comment
+      ELASTIC_HOST: elastic
       IMAGE_HOST: image-microservice
       AUTHENTICATION_HOST: auth-microservice
       X_API_KEY: ${X_API_KEY}
@@ -129,10 +130,11 @@ services:
       context: .
       dockerfile: Authentication_microservice/Dockerfile
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/DATABASE_NAME
-      SPRING_DATASOURCE_USERNAME: DOCKER_POSTGRES_USERNAME
-      SPRING_DATASOURCE_PASSWORD: DOCKER_POSTGRES_PASSWORD
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       ADS_HOST: ads
+      REDIS_HOST: redis
       IMAGE_HOST: image-microservice
       X_API_KEY: ${X_API_KEY}
     depends_on:
