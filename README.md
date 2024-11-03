@@ -38,6 +38,16 @@ Anyone can participate and borrow code, but it's important to respect the licens
     - Adjust user roles (promote or demote).
 </details>
 
+---
+### Settings
+
+| Environment        | Description                                                                                                |
+|:------------------:|:----------------------------------------------------------------------------------------------------------:|
+| X_API_KEY          |   The key for connecting internal APIs to each other, which should not be accessible to an outsider        |
+| ELASTIC_PASSWORD   |   The password from your elasticSearch user                                                                |
+
+---
+
 # Microservices
 
 ### Ads Microservice
