@@ -223,7 +223,7 @@ Manages announcements and their content, including user complaints
 
 - **Description**: Add a new ad.
 - **Request Body**:
-    - `cardDto` — Contains details about the ad (title, text, etc.).
+    - `cardDto` — Contains details about the ad (title, text).
     - `files` — List of images to be uploaded and attached to the ad.
 - **Request Header**:
     - `Authorization` — The JWT token for authentication.
