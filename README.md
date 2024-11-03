@@ -41,10 +41,15 @@ Anyone can participate and borrow code, but it's important to respect the licens
 ---
 ### Settings
 
-| Environment        | Description                                                                                                |
-|:------------------:|:----------------------------------------------------------------------------------------------------------:|
-| X_API_KEY          |   The key for connecting internal APIs to each other, which should not be accessible to an outsider        |
-| ELASTIC_PASSWORD   |   The password from your elasticSearch user                                                                |
+| Environment           | Description                                                                                                |
+|:---------------------:|:----------------------------------------------------------------------------------------------------------:|
+| X_API_KEY             |   The key for connecting internal APIs to each other, which should not be accessible to an outsider        |
+| ELASTIC_PASSWORD      |   The password from your elasticSearch user                                                                |
+| POSTGRES_DB           |   The name of your database                                                                                |
+| POSTGRES_USER         |   Login from your postgres                                                                                 |
+| POSTGRES_PASSWORD     |   The password for your postgres                                                                           |
+| MINIO_ROOT_USER       |   Login from minIO                                                                                         |
+| MINIO_ROOT_PASSWORD   |   The password for your minIO                                                                              |
 
 ---
 
