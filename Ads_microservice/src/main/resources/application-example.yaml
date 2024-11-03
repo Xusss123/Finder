@@ -1,8 +1,8 @@
 spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:LOCAL_POSTGRES_PORT/DATABASE_NAME}
-    username: ${SPRING_DATASOURCE_USERNAME:LOCAL_POSTGRES_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD:LOCAL_POSTGRES_PASSWORD}
+    username: ${POSTGRES_USER:LOCAL_POSTGRES_USERNAME}
+    password: ${POSTGRES_PASSWORD:LOCAL_POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -12,7 +12,7 @@ spring:
       max-request-size: 30MB
       max-file-size: 6MB
   elasticsearch:
-    uris: http://localhost:ELASTIC_LOCAL_PORT
+    uris: http://${ELASTIC_HOST:localhost}:9200
     username: my_user
     password: ${ELASTIC_PASSWORD:ELASTIC_LOCAL_PASSWORD}
 
