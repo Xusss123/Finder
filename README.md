@@ -4,6 +4,8 @@ The platform enables users to create announcements for seeking teams for their p
 
 Anyone can participate and borrow code, but it's important to respect the license terms.
 
+[Читать на русском](README.ru.md)
+
 <details>
   <summary><strong>Currently Implemented:</strong></summary>
 
