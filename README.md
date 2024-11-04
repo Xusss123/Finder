@@ -549,7 +549,7 @@ Manages user authentication and authorization
 
 #### **9. GET** `/user/favoriteCard/get`
 
-- **Description**: Retrieves the list of favorite cards for the current user.
+- **Description**: Retrieves the list of ids favorite cards for the current user.
 - **Request Header**:
     - `Authorization` — The JWT token for authentication.
 - **Response Codes**:
