@@ -790,7 +790,7 @@
 
 ---
 
-### Image Microservice
+### Микросервис Изображений
 Необходим для работы с изображениями
 <details>
   <summary><strong>Эндпоинты:</strong></summary>
