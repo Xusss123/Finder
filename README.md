@@ -25,7 +25,6 @@ Anyone can participate and borrow code, but it's important to respect the licens
   - **Update profile avatar.**
   - **View user profile.**
   - **Delete user account.**
-  - **Sending messages to mail (password recovery, sending notifications)**
 
   ### Access Control and Security
   - **Access token validation.**
@@ -39,6 +38,9 @@ Anyone can participate and borrow code, but it's important to respect the licens
   - **User Moderation:**
     - Ban or unban users.
     - Adjust user roles (promote or demote).
+
+  ### Email Notifications
+  - **Sending messages to mail (for password recovery or sending notifications)**
 </details>
 
 ---
