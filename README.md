@@ -43,15 +43,20 @@ Anyone can participate and borrow code, but it's important to respect the licens
 ---
 ### Settings
 
-| Environment           | Description                                                                                                |
-|:---------------------:|:----------------------------------------------------------------------------------------------------------:|
-| X_API_KEY             |   The key for connecting internal APIs to each other, which should not be accessible to an outsider        |
-| ELASTIC_PASSWORD      |   The password from your elasticSearch user                                                                |
-| POSTGRES_DB           |   The name of your database                                                                                |
-| POSTGRES_USER         |   Login from your postgres                                                                                 |
-| POSTGRES_PASSWORD     |   The password for your postgres                                                                           |
-| MINIO_ROOT_USER       |   Login from minIO                                                                                         |
-| MINIO_ROOT_PASSWORD   |   The password for your minIO                                                                              |
+| Environment                    | Description                                                                                                |
+|:------------------------------:|:----------------------------------------------------------------------------------------------------------:|
+| X_API_KEY                      |   The key for connecting internal APIs to each other, which should not be accessible to an outsider        |
+| ELASTIC_PASSWORD               |   The password from your elasticSearch user                                                                |
+| POSTGRES_DB                    |   The name of your database                                                                                |
+| POSTGRES_USER                  |   Login from your postgres                                                                                 |
+| POSTGRES_PASSWORD              |   The password for your postgres                                                                           |
+| MINIO_ROOT_USER                |   Login from minIO                                                                                         |
+| MINIO_ROOT_PASSWORD            |   The password for your minIO                                                                              |
+| RABBITMQ_DEFAULT_USER          |   Login by rabbitMQ                                                                                        |
+| RABBITMQ_DEFAULT_PASS          |   Password by rabbitMQ                                                                                     |
+| MAIL_USERNAME                  |   SMTP email                                                                                               |
+| MAIL_PASSWORD                  |   SMTP password                                                                                            |
+| SEND_EMAIL_MESSAGE             |   Whether to send messages to the mail about successful publication of the advertisement (true/false)      |
 
 ---
 
@@ -444,7 +449,6 @@ Manages user authentication and authorization
 {
     "refreshToken": "token"
 }
-
 ```   
 - **Response Codes**:
     - `200 OK`: Returns a new access token:
@@ -606,6 +610,23 @@ Manages user authentication and authorization
 - **Response Codes**:
     - `200 OK`: Successfully toggled the user's roles.
     - `400 Bad Request`: If the user is not found or if there are insufficient permissions to change roles.
+
+---
+
+#### **13. GET** `/user/recovery/mail`
+
+- **Description**: Generates and sends an email with a link to change your password.
+- **Request body**:
+```json
+{
+    "email": "email@example.com",
+    "password":"new_password"
+}
+
+``` 
+- **Response Codes**:
+    - `200 OK`: The letter was successfully sent.
+    - `400 Bad Request`: If there is a server error.
 </details>
 
 ---
