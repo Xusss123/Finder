@@ -1,4 +1,18 @@
+rabbitmq:
+  queue:
+    recovery:
+      name: recovery-queue
+  exchange: finder-exchange
+  routing-key:
+    recovery:
+      name: recovery-routing-key
+
 spring:
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_DEFAULT_USER:LOCAL_RABBITMQ_LOGIN}
+    password: ${RABBITMQ_DEFAULT_PASS:LOCAL_RABBITMQ_PASSWORD}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:LOCAL_POSTGRES_PORT/DATABASE_NAME}
     username: ${POSTGRES_USER:LOCAL_POSTGRES_USERNAME}
@@ -19,6 +33,11 @@ jwt:
 
 microservices:
   x-api-key: ${X_API_KEY:local-api-key}
+  auth:
+    prefix: http://
+    host: localhost
+    endpoints:
+      recovery-password: /user/recovery/password
   ads:
     prefix: http://
     host: ${ADS_HOST:localhost}

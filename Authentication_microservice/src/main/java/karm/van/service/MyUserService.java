@@ -6,12 +6,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.servlet.http.HttpServletRequest;
 import karm.van.config.AdsMicroServiceProperties;
+import karm.van.config.AuthMicroServiceProperties;
 import karm.van.config.ImageMicroServiceProperties;
+import karm.van.dto.request.RecoveryRequest;
 import karm.van.dto.request.UserDtoRequest;
-import karm.van.dto.response.FullUserDtoResponse;
-import karm.van.dto.response.ProfileImageDtoResponse;
-import karm.van.dto.response.UserCardResponse;
-import karm.van.dto.response.UserDtoResponse;
+import karm.van.dto.response.*;
 import karm.van.exception.*;
 import karm.van.model.MyUser;
 import karm.van.repo.MyUserRepo;
@@ -46,13 +45,21 @@ public class MyUserService {
     private final PasswordEncoder passwordEncoder;
     private final AdsMicroServiceProperties adsProperties;
     private final ImageMicroServiceProperties imageProperties;
+    private final AuthMicroServiceProperties authMicroServiceProperties;
     private final ApiService apiService;
+    private final JwtService jwtService;
+    private final NotificationProducer notificationProducer;
+    private final PasswordEncoder encoder;
 
     @Value("${microservices.x-api-key}")
     private String apiKey;
 
     @Value("${redis.host}")
     private String redisHost;
+
+    @Value("${server.port}")
+    private String serverPort;
+
     @PostConstruct
     public void init(){
         redis = new JedisPooled(redisHost,6379);
@@ -189,14 +196,18 @@ public class MyUserService {
     @Transactional
     public void registerUser(UserDtoRequest userDtoRequest) throws UserAlreadyExist {
         String name = userDtoRequest.name();
+        String email = userDtoRequest.email();
 
         if (userRepo.existsByName(name)){
             throw new UserAlreadyExist("A user with this login already exists");
         }
+        if(userRepo.existsByEmail(email)){
+            throw new UserAlreadyExist("A user with this email already exists");
+        }
 
         MyUser user = MyUser.builder()
                 .name(name)
-                .email(userDtoRequest.email())
+                .email(email)
                 .country(userDtoRequest.country())
                 .description(userDtoRequest.description())
                 .roles(userDtoRequest.role())
@@ -579,5 +590,29 @@ public class MyUserService {
         user.setEnable(true);
         user.setUnlockAt(LocalDateTime.now());
         userRepo.save(user);
+    }
+
+    public void getRecoveryMail(RecoveryRequest request) {
+        String url = apiService.buildUrl(
+                authMicroServiceProperties.getPrefix(),
+                authMicroServiceProperties.getHost(),
+                serverPort,
+                authMicroServiceProperties.getEndpoints().getRecoveryPassword(),
+                jwtService.generateRecoveryToken(request.email(),request.password()));
+        notificationProducer.sendRecoveryMessage(new RecoveryMessageDto(request.email(), url));
+    }
+
+    @Transactional
+    public void updatePassword(String recoveryKey) throws EmailNotFoundException {
+        if (jwtService.validateRecoveryToken(recoveryKey)){
+            String password = jwtService.extractNewPassword(recoveryKey);
+            String email = jwtService.extractUserEmail(recoveryKey);
+
+            MyUser user = userRepo.findByEmail(email)
+                    .orElseThrow(()->new EmailNotFoundException("Email doesn't exist"));
+
+            user.setPassword(encoder.encode(password));
+        }
+
     }
 }

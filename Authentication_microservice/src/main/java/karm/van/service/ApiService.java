@@ -40,6 +40,17 @@ public class ApiService {
         return uriBuilder.toUriString();
     }
 
+    public String buildUrl(String prefix, String host, String port, String endpoint, String... pathSegments) {
+        UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(prefix + host + ":" + port + endpoint);
+
+        for (Object segment : pathSegments) {
+            uriBuilder.pathSegment(segment.toString());
+        }
+
+        return uriBuilder.toUriString();
+    }
+
+
     private HttpStatusCode sendPostRequest(String url, String token, String apiKey) {
         return Objects.requireNonNull(
                 webClient

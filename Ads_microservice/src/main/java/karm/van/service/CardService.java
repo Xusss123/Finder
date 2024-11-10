@@ -9,8 +9,10 @@ import karm.van.config.properties.CommentMicroServiceProperties;
 import karm.van.config.properties.ImageMicroServiceProperties;
 import karm.van.dto.card.CardDto;
 import karm.van.dto.card.CardPageResponseDto;
+import karm.van.dto.card.ElasticPatchDto;
 import karm.van.dto.card.FullCardDtoForOutput;
 import karm.van.dto.image.ImageDto;
+import karm.van.dto.message.EmailDataDto;
 import karm.van.dto.user.UserDtoRequest;
 import karm.van.exception.card.CardNotFoundException;
 import karm.van.exception.card.CardNotSavedException;
@@ -26,7 +28,6 @@ import karm.van.exception.user.NotEnoughPermissionsException;
 import karm.van.exception.user.UsernameNotFoundException;
 import karm.van.model.CardDocument;
 import karm.van.model.CardModel;
-import karm.van.repo.elasticRepo.ElasticRepo;
 import karm.van.repo.jpaRepo.CardRepo;
 import karm.van.repo.jpaRepo.ComplaintRepo;
 import lombok.RequiredArgsConstructor;
@@ -60,7 +61,7 @@ public class CardService {
     private final AuthenticationMicroServiceProperties authenticationProperties;
     private final ApiService apiService;
     private final ComplaintRepo complaintRepo;
-    private final ElasticRepo elasticRepo;
+    private final BrokerProducer brokerProducer;
 
     @Value("${redis.host}")
     private String redisHost;
@@ -70,6 +71,9 @@ public class CardService {
 
     @Value("${card.images.count}")
     private int allowedImagesCount;
+
+    @Value("${email.settings.send}")
+    private boolean send;
 
     @PostConstruct
     public void init(){
@@ -220,7 +224,12 @@ public class CardService {
                 .createTime(cardModel.getCreateTime())
                 .build();
 
-        elasticRepo.save(cardDocument);
+        brokerProducer.saveInBroker(cardDocument);
+    }
+
+    @Async
+    protected void sendMessage(EmailDataDto emailDataDto){
+        brokerProducer.sendEmailMessage(emailDataDto);
     }
 
     @Transactional
@@ -228,7 +237,7 @@ public class CardService {
             throws ImageNotSavedException, CardNotSavedException, ImageLimitException, TokenNotExistException, UsernameNotFoundException {
         String token = authorization.substring(7);
 
-        List<Long> imageIds = new ArrayList<>(); // Инициализация пустого списка
+        List<Long> imageIds = new ArrayList<>();
         try {
             checkToken(token);
 
@@ -236,16 +245,20 @@ public class CardService {
                 throw new ImageLimitException("You have provided more than " + allowedImagesCount + " images");
             }
 
-            Long userId = requestToGetUserByToken(token).id();
+            UserDtoRequest user = requestToGetUserByToken(token);
             CardModel cardModel = addCardText(cardDto);
             imageIds = requestToAddCardImages(files,token);
 
             cardModel.setImgIds(imageIds);
-            cardModel.setUserId(userId);
+            cardModel.setUserId(user.id());
             cardRepo.save(cardModel);
 
             requestToLinkCardAndUser(cardModel,token);
             addCardIntoElastic(cardModel);
+
+            if (send){
+                sendMessage(new EmailDataDto(user.email(),cardDto));
+            }
 
         } catch (ImageNotSavedException | ImageLimitException | UsernameNotFoundException | TokenNotExistException e) {
             log.debug("in class - " + e.getClass() + " an error has occurred: " + e.getMessage());
@@ -392,11 +405,10 @@ public class CardService {
             throw new CardNotUnlinkException("An error occurred while trying to delete the card");
         }
     }
-
+    
     @Async
     protected void delCardIntoElastic(CardModel cardModel) {
-        elasticRepo.findById(cardModel.getId())
-                .ifPresent(elasticRepo::delete);
+        brokerProducer.saveInBroker(cardModel);
     }
 
     @Transactional
@@ -500,20 +512,7 @@ public class CardService {
 
     @Async
     protected void patchCardTextIntoElastic(Long id,CardDto cardDto){
-        String title = cardDto.title();
-        String text = cardDto.text();
-
-        elasticRepo.findById(id)
-                .ifPresent(cardDocument -> {
-                    if (!title.trim().isEmpty()){
-                        cardDocument.setTitle(title);
-                    }
-                    if (text.trim().isEmpty()){
-                        cardDocument.setText(text);
-                    }
-
-                    elasticRepo.save(cardDocument);
-                });
+        brokerProducer.saveInBroker(new ElasticPatchDto(id,cardDto));
     }
 
     @Transactional

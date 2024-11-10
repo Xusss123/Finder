@@ -1,4 +1,36 @@
+rabbitmq:
+  queue:
+    email:
+      name: email-queue
+    elastic:
+      save:
+        name: elastic-queue-save
+      del:
+        name: elastic-queue-del
+      patch:
+        name: elastic-queue-patch
+  exchange:
+    message:
+      name: finder-exchange
+    elastic:
+      name: elastic-exchange
+  routing-key:
+    email:
+      name: email-routing-key
+    elastic:
+      save:
+        name: elastic-routing-key-save
+      del:
+        name: elastic-routing-key-del
+      patch:
+        name: elastic-routing-key-patch
+
 spring:
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_DEFAULT_USER:LOCAL_RABBITMQ_LOGIN}
+    password: ${RABBITMQ_DEFAULT_PASS:LOCAL_RABBITMQ_PASSWORD}
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:LOCAL_POSTGRES_PORT/DATABASE_NAME}
     username: ${POSTGRES_USER:LOCAL_POSTGRES_USERNAME}
@@ -53,3 +85,7 @@ microservices:
 card:
   images:
     count: 6
+
+email:
+  settings:
+    send: ${SEND_EMAIL_MESSAGE:false}

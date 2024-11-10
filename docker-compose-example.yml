@@ -1,6 +1,17 @@
 version: '3.8'
 services:
 
+  rabbit:
+    image: rabbitmq:alpine
+    restart: always
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+    ports:
+      - "5672:5672"
+    networks:
+      - app-network
+
   elastic:
     image: elasticsearch:7.17.22
     environment:
@@ -20,7 +31,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
     restart: always
     volumes:
-      - /your/local/path:/var/lib/postgresql/data  # Replace with your path
+      - your/path/to/folder
     ports:
       - "5432:5432"
     networks:
@@ -39,17 +50,37 @@ services:
     image: minio/minio:latest
     container_name: minio
     ports:
-      - "9000:9000"  # Object storage API port
-      - "9001:9001"  # Web console port
+      - "9000:9000"  # API порт для работы с объектным хранилищем
+      - "9001:9001"  # Порт для веб-консоли
     volumes:
-      - /your/local/path:/data  # Replace with your path
+      - - your/path/to/folder:/data
     environment:
       - MINIO_ROOT_USER=${MINIO_ROOT_USER}
       - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
     restart: always
     networks:
       - app-network
-    command: server /data --console-address ":9001"
+    command: server /data --console-address ":9001" # Указывает Docker, какой именно командой запускать контейнер после его создания
+
+  message-microservice:
+    image: message_broker_microservice
+    build:
+      context: .
+      dockerfile: Message_broker_microservice/Dockerfile
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - MAIL_USERNAME=${MAIL_USERNAME}
+      - MAIL_PASSWORD=${MAIL_PASSWORD}
+      - RABBIT_HOST=rabbit
+    depends_on:
+      - rabbit
+      - ads
+    restart: always
+    ports:
+      - "8085:8085"
+    networks:
+      - app-network
 
   comment:
     image: comment_microservice
@@ -113,10 +144,15 @@ services:
       AUTHENTICATION_HOST: auth-microservice
       X_API_KEY: ${X_API_KEY}
       ELASTIC_PASSWORD: ${ELASTIC_PASSWORD}
+      SEND_EMAIL_MESSAGE: ${SEND_EMAIL_MESSAGE}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBIT_HOST: rabbit
     depends_on:
       - auth-microservice
       - postgres
       - redis
+      - rabbit
       - elastic
     restart: always
     ports:
@@ -136,7 +172,11 @@ services:
       ADS_HOST: ads
       REDIS_HOST: redis
       IMAGE_HOST: image-microservice
+      AUTH_HOST: auth-microservice
       X_API_KEY: ${X_API_KEY}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS}
+      RABBIT_HOST: rabbit
     depends_on:
       - postgres
       - redis
