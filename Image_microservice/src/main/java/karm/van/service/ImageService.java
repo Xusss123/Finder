@@ -197,11 +197,6 @@ public class ImageService {
                 .stream().map(this::imageModelToDto).toList();
     }
 
-    private List<ImageDto> getImages(List<Long> imagesId) {
-        return imageRepo.findAllById(imagesId)
-                .stream().map(this::imageModelToDto).toList();
-    }
-
     public boolean checkNoneEqualsApiKey(String key) {
         return !key.equals(apiKey);
     }
