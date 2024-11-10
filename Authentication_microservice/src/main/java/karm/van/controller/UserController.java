@@ -2,6 +2,7 @@ package karm.van.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import jakarta.servlet.http.HttpServletRequest;
+import karm.van.dto.request.RecoveryRequest;
 import karm.van.exception.*;
 import karm.van.service.MyUserService;
 import lombok.RequiredArgsConstructor;
@@ -101,6 +102,16 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }catch (JsonProcessingException e){
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    @GetMapping("/recovery/mail")
+    public ResponseEntity<?> recoveryMail(@RequestBody RecoveryRequest request){
+        try {
+            myUserService.getRecoveryMail(request);
+            return ResponseEntity.ok("The message has been sent to your email: "+request.email());
+        }catch (Exception e){
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 

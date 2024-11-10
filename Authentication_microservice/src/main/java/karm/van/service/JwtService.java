@@ -29,6 +29,14 @@ public class JwtService {
         return createToken(claims, userDetails.getUsername(), 1000 * 60 * 15); // 15 минут
     }
 
+    public String generateRecoveryToken(String email, String password) {
+        Map<String, Object> claims = new HashMap<>();
+        claims.put("token_type", "recovery");
+        claims.put("new_password",password);
+        claims.put("email",email);
+        return createToken(claims, email, 1000 * 60 * 5); // 15 минут
+    }
+
     // Генерация Refresh Token (более длинное время жизни, например 7 дней)
     public String generateRefreshToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
@@ -70,6 +78,18 @@ public class JwtService {
         return !isTokenExpired(token);
     }
 
+    public Boolean validateRecoveryToken(String token) {
+        if (!isRecoveryToken(token)) {
+            throw new IllegalArgumentException("Provided token is not a recovery token");
+        }
+        return !isTokenExpired(token);
+    }
+
+    private boolean isRecoveryToken(String token) {
+        Claims claims = extractAllClaims(token);
+        return "recovery".equals(claims.get("token_type"));
+    }
+
     private boolean isRefreshToken(String token) {
         Claims claims = extractAllClaims(token);
         return "refresh".equals(claims.get("token_type"));
@@ -96,6 +116,16 @@ public class JwtService {
 
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
+    }
+
+    public String extractNewPassword(String token){
+        final Claims claims = extractAllClaims(token);
+        return (String) claims.get("new_password");
+    }
+
+    public String extractUserEmail(String token){
+        final Claims claims = extractAllClaims(token);
+        return (String) claims.get("email");
     }
 
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {

@@ -1,0 +1,33 @@
+rabbitmq:
+  queue:
+    recovery:
+      name: recovery-queue
+    email:
+      name: email-queue
+  exchange: finder-exchange
+  routing-key:
+    email:
+      name: email-routing-key
+    recovery:
+      name: recovery-routing-key
+
+spring:
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    port: 5672
+    username: ${RABBITMQ_DEFAULT_USER:LOCAL_RABBITMQ_LOGIN}
+    password: ${RABBITMQ_DEFAULT_PASS:LOCAL_RABBITMQ_PASSWORD}
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME:email@example.com}
+    password: ${MAIL_PASSWORD:email password}
+    test-connection: true
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+server:
+  port: 8085

@@ -26,6 +26,7 @@
         <module>Comment_microservice</module>
         <module>Authentication_microservice</module>
         <module>Image_microservice</module>
+        <module>Message_broker_microservice</module>
     </modules>
     <scm>
         <connection/>

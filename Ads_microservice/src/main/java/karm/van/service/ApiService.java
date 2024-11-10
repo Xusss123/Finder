@@ -194,7 +194,7 @@ public class ApiService {
         return sendPostRequest(url,token,apiKey);
     }
 
-    private String getIds(List<Long> imagesId){
+    private String getIds(List<?> imagesId){
         return imagesId.stream()
                 .map(String::valueOf)
                 .collect(Collectors.joining(","));

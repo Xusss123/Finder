@@ -65,20 +65,8 @@ public class ElasticService {
         String token = authorization.substring(7);
         checkToken(token);
 
-        PageRequest pageRequest = PageRequest.of(pageNumber,limit);
         StringBuilder redisKey = new StringBuilder("pageNumber:" + pageNumber + ":limit:" + limit + ":" + query);
-
-        Page<CardDocument> documents = createTime.map(timeFilter->{
-                redisKey.append(":").append(timeFilter);
-                return elasticRepo.findByQueryAndSortByData(query,timeFilter.toString(),pageRequest);
-        })
-                .orElseGet(()-> elasticRepo.findByQuery(query, pageRequest));
-
-        List<Long> ids = documents.stream()
-                .map(CardDocument::getId)
-                .toList();
-
-        List<CardModel> cards = cardRepo.findAllById(ids);
+        createTime.map(timeFilter-> redisKey.append(":").append(timeFilter));
 
         if (redis.exists(String.valueOf(redisKey))){
             try {
@@ -87,6 +75,17 @@ public class ElasticService {
                 throw new SerializationException("an error occurred during serialization");
             }
         }else {
+            PageRequest pageRequest = PageRequest.of(pageNumber,limit);
+
+            Page<CardDocument> documents = createTime.map(timeFilter->
+                    elasticRepo.findByQueryAndSortByData(query,timeFilter.toString(),pageRequest))
+                    .orElseGet(()-> elasticRepo.findByQuery(query, pageRequest));
+
+            List<Long> ids = documents.stream()
+                    .map(CardDocument::getId)
+                    .toList();
+
+            List<CardModel> cards = cardRepo.findAllById(ids);
             return cacheCards(cards,documents,token, String.valueOf(redisKey));
         }
 

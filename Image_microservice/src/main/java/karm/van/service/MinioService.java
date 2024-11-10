@@ -1,9 +1,11 @@
 package karm.van.service;
 
 import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import karm.van.exception.ImageNotDeletedException;
 import karm.van.exception.ImageNotFoundException;
 import karm.van.exception.ImageNotSavedException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,6 +22,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import java.net.URI;
 
 @Service
+@Slf4j
 public class MinioService {
 
     @Value("${minio.endpoint}")
@@ -85,6 +88,14 @@ public class MinioService {
             client.deleteObject(deleteObjectRequest);
         } catch (Exception e) {
             throw new ImageNotDeletedException("An error occurred while delete the image");
+        }
+    }
+
+    @PreDestroy
+    public void closeMinioClient() {
+        if (client != null) {
+            client.close();
+            log.info("S3Client closed successfully.");
         }
     }
 }

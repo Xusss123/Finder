@@ -1,8 +1,10 @@
 package karm.van.config;
 
+import jakarta.annotation.PostConstruct;
 import karm.van.exception.handling.CustomAuthenticationEntryPoint;
 import karm.van.filter.JwtRequestFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -22,11 +24,22 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity()
 @RequiredArgsConstructor
-@EnableConfigurationProperties({AdsMicroServiceProperties.class,ImageMicroServiceProperties.class})
+@EnableConfigurationProperties({AdsMicroServiceProperties.class,ImageMicroServiceProperties.class,AuthMicroServiceProperties.class})
 public class SecurityConfiguration {
 
     private final JwtRequestFilter jwtRequestFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
+    @Value("${microservices.auth.endpoints.recovery-password}")
+    private String passwordRecoveryEndPoint;
+
+    private String fullEndpoint;
+
+    @PostConstruct
+    public void init(){
+        fullEndpoint = passwordRecoveryEndPoint+"/**";
+    }
+
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder(5);
@@ -41,7 +54,7 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .authorizeHttpRequests(auth->auth.requestMatchers(
-                                "/auth/login", "/auth/register","/auth/refresh-token").permitAll()
+                                "/auth/login", "/auth/register","/auth/refresh-token","/user/recovery/**",fullEndpoint).permitAll()
                         .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(CsrfConfigurer::disable)

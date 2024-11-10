@@ -77,6 +77,12 @@ public class ExceptionHandlerController {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    @ExceptionHandler(ImageUrlNotGetted.class)
+    public ResponseEntity<String> imageUrlNotGetted(ImageUrlNotGetted ex){
+        return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+
     @ExceptionHandler(CommentNotDeletedException.class)
     public ResponseEntity<String> commentNotDeletedException(CommentNotDeletedException ex){
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
