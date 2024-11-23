@@ -59,6 +59,7 @@ Anyone can participate and borrow code, but it's important to respect the licens
 | Environment                    | Description                                                                                                |
 |:------------------------------:|:----------------------------------------------------------------------------------------------------------:|
 | X_API_KEY                      |   The key for connecting internal APIs to each other, which should not be accessible to an outsider        |
+| ELASTIC_USERNAME               |   Username from your elasticSearch user                                                                    |
 | ELASTIC_PASSWORD               |   The password from your elasticSearch user                                                                |
 | POSTGRES_DB                    |   The name of your database                                                                                |
 | POSTGRES_USER                  |   Login from your postgres                                                                                 |
@@ -67,8 +68,10 @@ Anyone can participate and borrow code, but it's important to respect the licens
 | MINIO_ROOT_PASSWORD            |   The password for your minIO                                                                              |
 | RABBITMQ_DEFAULT_USER          |   Login by rabbitMQ                                                                                        |
 | RABBITMQ_DEFAULT_PASS          |   Password by rabbitMQ                                                                                     |
-| MAIL_USERNAME                  |   SMTP email                                                                                               |
-| MAIL_PASSWORD                  |   SMTP password                                                                                            |
+| SMTP_MAIL                      |   SMTP email                                                                                               |
+| SMTP_PASSWORD                  |   SMTP password                                                                                            |
+| SMTP_HOST                      |   SMTP host                                                                                                |
+| SMTP_PORT                      |   SMTP port                                                                                                |
 | SEND_EMAIL_MESSAGE             |   Whether to send messages to the mail about successful publication of the advertisement (true/false)      |
 
 ---
