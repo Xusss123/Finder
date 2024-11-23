@@ -55,20 +55,23 @@
 ---
 ### Настройки
 
-| Окружение                      | Описание                                                                                                   |
-|:------------------------------:|:---------------------------------------------------------------------------------------------------------:|
-| X_API_KEY                      | Ключ для подключения внутренних API друг к другу, который не должен быть доступен извне                   |
-| ELASTIC_PASSWORD               | Пароль от пользователя elasticSearch                                                                      |
-| POSTGRES_DB                    | Название вашей базы данных                                                                                |
-| POSTGRES_USER                  | Логин от вашего postgres                                                                                  |
-| POSTGRES_PASSWORD              | Пароль для вашего postgres                                                                                |
-| MINIO_ROOT_USER                | Логин от minIO                                                                                            |
-| MINIO_ROOT_PASSWORD            | Пароль для вашего minIO                                                                                   |
-| RABBITMQ_DEFAULT_USER          | Логин для rabbitMQ                                                                                        |
-| RABBITMQ_DEFAULT_PASS          | Пароль для rabbitMQ                                                                                       |
-| MAIL_USERNAME                  | SMTP email                                                                                                |
-| MAIL_PASSWORD                  | SMTP пароль                                                                                               |
-| SEND_EMAIL_MESSAGE             | Нужно ли отправлять сообщения на почту об успешной публикации объявления (true/false)                     |
+| **Переменная окружения**       | **Описание**                                                                                             |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `X_API_KEY`                    | Ключ для соединения внутренних API между собой, недоступный для внешних пользователей                    |
+| `ELASTIC_USERNAME`             | Имя пользователя для ElasticSearch                                                                       |
+| `ELASTIC_PASSWORD`             | Пароль для пользователя ElasticSearch                                                                    |
+| `POSTGRES_DB`                  | Имя базы данных PostgreSQL                                                                               |
+| `POSTGRES_USER`                | Логин пользователя PostgreSQL                                                                            |
+| `POSTGRES_PASSWORD`            | Пароль пользователя PostgreSQL                                                                           |
+| `MINIO_ROOT_USER`              | Логин для MinIO                                                                                          |
+| `MINIO_ROOT_PASSWORD`          | Пароль для MinIO                                                                                         |
+| `RABBITMQ_DEFAULT_USER`        | Логин для RabbitMQ                                                                                       |
+| `RABBITMQ_DEFAULT_PASS`        | Пароль для RabbitMQ                                                                                      |
+| `SMTP_MAIL`                    | Email-адрес для SMTP                                                                                     |
+| `SMTP_PASSWORD`                | Пароль для учетной записи SMTP                                                                           |
+| `SMTP_HOST`                    | Хост вашего SMTP-сервера                                                                                 |
+| `SMTP_PORT`                    | Порт вашего SMTP-сервера                                                                                 |
+| `SEND_EMAIL_MESSAGE`           | Отправлять ли сообщения на почту о успешной публикации объявления (`true/false`)                        |
 
 ---
 
