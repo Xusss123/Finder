@@ -56,23 +56,23 @@ Anyone can participate and borrow code, but it's important to respect the licens
 
 ### Settings
 
-| Environment                    | Description                                                                                                |
-|:------------------------------:|:----------------------------------------------------------------------------------------------------------:|
-| X_API_KEY                      |   The key for connecting internal APIs to each other, which should not be accessible to an outsider        |
-| ELASTIC_USERNAME               |   Username from your elasticSearch user                                                                    |
-| ELASTIC_PASSWORD               |   The password from your elasticSearch user                                                                |
-| POSTGRES_DB                    |   The name of your database                                                                                |
-| POSTGRES_USER                  |   Login from your postgres                                                                                 |
-| POSTGRES_PASSWORD              |   The password for your postgres                                                                           |
-| MINIO_ROOT_USER                |   Login from minIO                                                                                         |
-| MINIO_ROOT_PASSWORD            |   The password for your minIO                                                                              |
-| RABBITMQ_DEFAULT_USER          |   Login by rabbitMQ                                                                                        |
-| RABBITMQ_DEFAULT_PASS          |   Password by rabbitMQ                                                                                     |
-| SMTP_MAIL                      |   SMTP email                                                                                               |
-| SMTP_PASSWORD                  |   SMTP password                                                                                            |
-| SMTP_HOST                      |   SMTP host                                                                                                |
-| SMTP_PORT                      |   SMTP port                                                                                                |
-| SEND_EMAIL_MESSAGE             |   Whether to send messages to the mail about successful publication of the advertisement (true/false)      |
+| **Environment Variable**       | **Description**                                                                                           |
+|--------------------------------|-----------------------------------------------------------------------------------------------------------|
+| `X_API_KEY`                    | The key for connecting internal APIs to each other, which should not be accessible to outsiders          |
+| `ELASTIC_USERNAME`             | Username for your ElasticSearch instance                                                                 |
+| `ELASTIC_PASSWORD`             | Password for your ElasticSearch user                                                                     |
+| `POSTGRES_DB`                  | The name of your PostgreSQL database                                                                     |
+| `POSTGRES_USER`                | Login for your PostgreSQL user                                                                           |
+| `POSTGRES_PASSWORD`            | Password for your PostgreSQL user                                                                        |
+| `MINIO_ROOT_USER`              | Login for your MinIO instance                                                                            |
+| `MINIO_ROOT_PASSWORD`          | Password for your MinIO instance                                                                         |
+| `RABBITMQ_DEFAULT_USER`        | Login for RabbitMQ                                                                                       |
+| `RABBITMQ_DEFAULT_PASS`        | Password for RabbitMQ                                                                                    |
+| `SMTP_MAIL`                    | Email address for SMTP                                                                                   |
+| `SMTP_PASSWORD`                | Password for the SMTP email account                                                                      |
+| `SMTP_HOST`                    | Host for your SMTP server                                                                                |
+| `SMTP_PORT`                    | Port for your SMTP server                                                                                |
+| `SEND_EMAIL_MESSAGE`           | Whether to send messages to the mail about successful publication of the advertisement (`true/false`)    |
 
 ---
 
