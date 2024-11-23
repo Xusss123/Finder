@@ -45,7 +45,7 @@ spring:
       max-file-size: 6MB
   elasticsearch:
     uris: http://${ELASTIC_HOST:localhost}:9200
-    username: my_user
+    username: ${ELASTIC_USERNAME:my_user}
     password: ${ELASTIC_PASSWORD:ELASTIC_LOCAL_PASSWORD}
 
 server:
