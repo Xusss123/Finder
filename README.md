@@ -44,6 +44,16 @@ Anyone can participate and borrow code, but it's important to respect the licens
 </details>
 
 ---
+
+## 🚀 Quick Start
+
+1. Launch the ElasticSearch container, create a user, and add the credentials to the `.env` file.  
+2. Create a PostgreSQL database, and add the database name, user credentials, and password to the `.env` file.  
+3. Set up an SMTP service and specify its details in the `.env` file.  
+4. Everything else will be created and configured automatically—just provide the necessary settings in the `.env` file.  
+
+---
+
 ### Settings
 
 | Environment                    | Description                                                                                                |
