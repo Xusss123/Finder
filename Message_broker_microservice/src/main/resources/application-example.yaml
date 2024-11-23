@@ -18,10 +18,10 @@ spring:
     username: ${RABBITMQ_DEFAULT_USER:LOCAL_RABBITMQ_LOGIN}
     password: ${RABBITMQ_DEFAULT_PASS:LOCAL_RABBITMQ_PASSWORD}
   mail:
-    host: smtp.gmail.com
-    port: 587
-    username: ${MAIL_USERNAME:email@example.com}
-    password: ${MAIL_PASSWORD:email password}
+    host: ${SMTP_HOST:smtp.gmail.com}
+    port: ${SMTP_PORT:587}
+    username: ${SMTP_MAIL:email@example.com}
+    password: ${SMTP_PASSWORD:email password}
     test-connection: true
     properties:
       mail:
