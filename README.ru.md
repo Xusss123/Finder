@@ -131,6 +131,10 @@
     - `200 OK`: Успешное получение.
     - `404 Not Found`: Если объявление с указанным идентификатором не существует.
 
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_card_request.svg" alt="Схема работы запроса" style="width:80%;"/>
+</div>
+
 ---
 
 #### **2. GET** `/card/getAll/{pageNumber}/{limit}`
@@ -238,6 +242,10 @@
     - `400 Bad Request`: Если токен отсутствует или недействителен.
     - `403 Forbidden`: Если у пользователя недостаточно прав для просмотра жалоб.
     - `500 Internal Server Error`: Если произошла ошибка во время процесса получения.
+
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_complaint_request.svg" alt="Схема работы запроса" style="width:80%;"/>
+</div>
 
 ---
 
