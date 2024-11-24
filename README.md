@@ -133,7 +133,8 @@ Manages announcements and their content, including user complaints
     - `404 Not Found`: If the ad with the given ID does not exist.
 
 <div align="center">
-    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_card_request.svg" alt="Scheme of work of the request" style="width:80%;"/>
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_card_request.svg" alt="Scheme of work of the request" width="80%"/>
+    <p><strong>The diagram depicts a simplified ideal case of a query</strong></p>
 </div>
 
 ---
@@ -246,6 +247,7 @@ Manages announcements and their content, including user complaints
 
 <div align="center">
     <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_complaint_request.svg" alt="Scheme of work of the request" style="width:80%;"/>
+    <p><strong>The diagram depicts a simplified ideal case of a query</strong></p>
 </div>
 
 ---
