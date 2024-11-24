@@ -133,6 +133,7 @@
 
 <div align="center">
     <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_card_request.svg" alt="Схема работы запроса" style="width:80%;"/>
+    <p><strong>Эта схема представляет собой упрощенный идеальный вариант запроса</strong></p>
 </div>
 
 ---
@@ -245,6 +246,7 @@
 
 <div align="center">
     <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_complaint_request.svg" alt="Схема работы запроса" style="width:80%;"/>
+    <p><strong>Эта схема представляет собой упрощенный идеальный вариант запроса</strong></p>
 </div>
 
 ---
