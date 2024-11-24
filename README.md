@@ -132,6 +132,10 @@ Manages announcements and their content, including user complaints
     - `200 OK`: Successful retrieval.
     - `404 Not Found`: If the ad with the given ID does not exist.
 
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_card_request.svg" alt="Scheme of work of the request" style="width:80%;"/>
+</div>
+
 ---
 
 #### **2. GET** `/card/getAll/{pageNumber}/{limit}`
@@ -239,6 +243,10 @@ Manages announcements and their content, including user complaints
     - `400 Bad Request`: If the token is missing or invalid.
     - `403 Forbidden`: If the user does not have sufficient permissions to view complaints.
     - `500 Internal Server Error`: If there is a failure during the retrieval process.
+
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/get_complaint_request.svg" alt="Scheme of work of the request" style="width:80%;"/>
+</div>
 
 ---
 
