@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @Log4j2
 @RequiredArgsConstructor
 @RestController
+@CrossOrigin
 @RequestMapping("/comment")
 public class CommentController {
     private final CommentService commentService;

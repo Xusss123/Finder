@@ -3,7 +3,7 @@ package karm.van.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import karm.van.complaint.ComplaintType;
+import karm.van.dto.complaint.ComplaintType;
 import karm.van.config.properties.AuthenticationMicroServiceProperties;
 import karm.van.dto.complaint.*;
 import karm.van.dto.user.UserDtoRequest;

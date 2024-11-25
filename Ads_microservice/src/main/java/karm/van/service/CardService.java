@@ -3,7 +3,7 @@ package karm.van.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
-import karm.van.complaint.ComplaintType;
+import karm.van.dto.complaint.ComplaintType;
 import karm.van.config.properties.AuthenticationMicroServiceProperties;
 import karm.van.config.properties.CommentMicroServiceProperties;
 import karm.van.config.properties.ImageMicroServiceProperties;
@@ -271,7 +271,7 @@ public class CardService {
             throw new RuntimeException("Unexpected error occurred", e);
         }
     }
-
+    //todo сделать кеширование в отдельном потоке, когда уже информация найдена и отдана
     public FullCardDtoForOutput getCard(Long id, String authorization) throws CardNotFoundException, SerializationException, TokenNotExistException, UsernameNotFoundException {
         String token = authorization.substring(7);
         checkToken(token);
