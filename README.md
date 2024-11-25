@@ -265,6 +265,11 @@ Manages announcements and their content, including user complaints
     - `400 Bad Request`: If the input data is invalid (e.g., too many images, missing fields).
     - `500 Internal Server Error`: If there is an issue during the ad creation process.
 
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/add_card_request.svg" alt="Scheme of work of the request" width="80%"/>
+    <p><strong>The diagram depicts a simplified ideal case of a query</strong></p>
+</div>
+
 ---
 
 #### **5. POST** `/complaint/create`
@@ -323,6 +328,11 @@ Manages announcements and their content, including user complaints
     - `200 OK`: Successfully deleted the ad.
     - `404 Not Found`: If the ad with the given ID does not exist.
     - `500 Internal Server Error`: If there is a failure in the deletion process.
+
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/delete_card_request.svg" alt="Scheme of work of the request" width="80%"/>
+    <p><strong>The diagram depicts a simplified ideal case of a query</strong></p>
+</div>
 
 ---
 
