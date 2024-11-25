@@ -264,6 +264,11 @@
     - `400 Bad Request`: Если входные данные недействительны (например, слишком много изображений, отсутствуют обязательные поля).
     - `500 Internal Server Error`: Если возникла проблема во время процесса создания объявления.
 
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/add_card_request.svg" alt="Схема работы запроса" style="width:80%;"/>
+    <p><strong>Эта схема представляет собой упрощенный идеальный вариант запроса</strong></p>
+</div>
+
 ---
 
 #### **5. POST** `/complaint/create`
@@ -322,6 +327,11 @@
     - `200 OK`: Объявление успешно удалено.
     - `404 Not Found`: Если объявление с указанным ID не найдено.
     - `500 Internal Server Error`: В случае ошибки во время процесса удаления.
+
+<div align="center">
+    <img src="https://xusss123.github.io/ImagesForFinderProject/imagesForGitHub/delete_card_request.svg" alt="Схема работы запроса" style="width:80%;"/>
+    <p><strong>Эта схема представляет собой упрощенный идеальный вариант запроса</strong></p>
+</div>
 
 ---
 
