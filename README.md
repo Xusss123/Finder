@@ -77,6 +77,7 @@ Anyone can participate and borrow code, but it's important to respect the licens
 ---
 
 # Microservices
+> ⚠️ **Note:** The diagrams presented do not describe the work of all queries, but only those that are unique in their implementation. If there is no diagram for a query, it means that it is almost or completely described by a similar one.
 
 ### Ads Microservice
 Manages announcements and their content, including user complaints
