@@ -1,6 +1,6 @@
 package karm.van.repo.jpaRepo;
 
-import karm.van.complaint.ComplaintType;
+import karm.van.dto.complaint.ComplaintType;
 import karm.van.model.Complaint;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

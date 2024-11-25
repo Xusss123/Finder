@@ -1,7 +1,7 @@
 package karm.van.model;
 
 import jakarta.persistence.*;
-import karm.van.complaint.ComplaintType;
+import karm.van.dto.complaint.ComplaintType;
 import lombok.*;
 
 @Entity

@@ -1,4 +1,4 @@
-package karm.van.complaint;
+package karm.van.dto.complaint;
 
 public enum ComplaintType {
     USER,

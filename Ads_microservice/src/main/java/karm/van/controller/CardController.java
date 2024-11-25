@@ -32,6 +32,7 @@ import java.util.Optional;
 @Log4j2
 @RequiredArgsConstructor
 @RestController
+@CrossOrigin
 @RequestMapping("/card/")
 public class CardController {
     private final CardService cardService;

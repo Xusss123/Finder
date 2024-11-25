@@ -17,6 +17,7 @@ import java.util.List;
 @Log4j2
 @RequiredArgsConstructor
 @RestController
+@CrossOrigin
 @RequestMapping("/image")
 public class ImageController {
     private final ImageService imageService;
