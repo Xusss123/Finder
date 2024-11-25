@@ -1,6 +1,6 @@
 # Overview
 
-The platform enables users to create announcements for seeking teams for their projects or to join existing ones. Its purpose is to help users find opportunities to gain teamwork experience and enhance their skills.
+This is a backend for a platform that allows users to create adverts to find teams for their projects or join existing ones. The goal of the platform is to help users find opportunities to gain teamwork experience and improve their skills.
 
 Anyone can participate and borrow code, but it's important to respect the license terms.
 
