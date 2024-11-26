@@ -469,8 +469,8 @@
     - `200 OK`: Возвращает access и refresh токены:
       ```json
       {
-        "jwtToken": "token",
-        "refreshToken": "token"
+        "jwtToken": "token", (Продолжительность жизни составляет 15 минут)
+        "refreshToken": "token" (Продолжительность жизни составляет 7 дней)
       }
       ```
     - `401 Unauthorized`: Если имя пользователя или пароль неверны.
