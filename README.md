@@ -470,8 +470,8 @@ Manages user authentication and authorization
     - `200 OK`: Returns access and refresh tokens:
       ```json
       {
-        "jwtToken": "token",
-        "refreshToken": "token"
+        "jwtToken": "token", (Lifespan 15 minutes)
+        "refreshToken": "token" (Lifespan 7 days)
       }
       ```
     - `401 Unauthorized`: If the username or password is incorrect.
